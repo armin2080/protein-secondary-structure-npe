@@ -1,0 +1,4 @@
+kagglehub[pandas-datasets]
+kagglesdk<0.1.24
+kaggle
+hmmlearn
