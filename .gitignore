@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# macOS resource fork files
+__MACOSX/
+
+# Dataset files (downloaded by data_downloader.py)
+dataset/
