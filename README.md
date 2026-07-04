@@ -8,12 +8,12 @@ We simulate amino acid sequences using an HMM with two states (alpha-helix / oth
 
 ## Task Breakdown (Team of 4, 3 min each)
 
-| Member | Role | Tasks | Effort |
-|--------|------|-------|--------|
-| **1** | **Simulator & Data Lead** | Write HMM simulator (states, transitions, emission tables); run Forward-Backward to generate sequence-posterior pairs; preprocess and format human insulin 1A7F as real-world validation data | ~25% |
-| **2** | **Architecture Lead** | Design sequence-processing summary network (LSTM/Transformer); implement padding/masking for variable-length batches; configure the BayesFlow adapter and inference (coupling) network | ~25% |
-| **3** | **Optimization Lead** | Build the training pipeline; conduct hyperparameter tuning (optimizers, learning rate schedulers, regularization); output training diagnostics and loss trajectory curves | ~25% |
-| **4** | **Diagnostics & Inference Lead** | Execute Simulation-Based Calibration (SBC histograms, ECDFs); generate parameter recovery and z-score/contraction plots; run final inference on human insulin and compare to ground truth | ~25% |
+| Member | Role | Tasks |
+|--------|------|-------|
+| **1** | **Simulator & Data Lead** | Write HMM simulator (states, transitions, emission tables); run Forward-Backward to generate sequence-posterior pairs; preprocess and format human insulin 1A7F as real-world validation data |
+| **2** | **Architecture Lead** | Design sequence-processing summary network (LSTM/Transformer); implement padding/masking for variable-length batches; configure the BayesFlow adapter and inference (coupling) network |
+| **3** | **Optimization Lead** | Build the training pipeline; conduct hyperparameter tuning (optimizers, learning rate schedulers, regularization); output training diagnostics and loss trajectory curves |
+| **4** | **Diagnostics & Inference Lead** | Execute Simulation-Based Calibration (SBC histograms, ECDFs); generate parameter recovery and z-score/contraction plots; run final inference on human insulin and compare to ground truth |
 
 Slides are prepared together as a team.
 
