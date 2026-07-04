@@ -6,7 +6,7 @@ Inference of protein secondary structure motifs using a two-state Hidden Markov 
 
 We simulate amino acid sequences using an HMM with two states (alpha-helix / other) and given transition/emission probabilities. The Forward-Backward algorithm computes true posterior state probabilities. A BayesFlow neural network is trained to approximate these posterior probabilities from amino acid sequences alone.
 
-## Task Breakdown (Team of 4, 3 min each)
+## Task Breakdown
 
 | Member | Role | Tasks |
 |--------|------|-------|
