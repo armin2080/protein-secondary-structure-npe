@@ -24,3 +24,69 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+## Usage
+
+### Environment
+
+Set up the virtual environment and install dependencies as shown in [Setup](#setup).
+`requirements.txt` already includes `biopython`, which is needed to build the insulin
+validation file (`insulin.py`).
+
+### Generate a training dataset
+
+Simulate sequences and label each position with its exact alpha-helix posterior, then
+save the result to a single `.npz` file:
+
+```python
+from simulator import get_rng
+from forward_backward import generate_dataset, save_dataset
+
+rng = get_rng(0)
+sequences, posteriors, states = generate_dataset(1000, rng, min_len=10, max_len=60)
+save_dataset("dataset/train.npz", sequences, posteriors, states)
+```
+
+`generate_dataset` returns three index-aligned lists of variable-length arrays; each
+`min_len`/`max_len` bounds the per-sequence length (inclusive).
+
+### Load a dataset
+
+```python
+from forward_backward import load_dataset
+
+sequences, posteriors, states = load_dataset("dataset/train.npz")
+```
+
+The return value is three lists, aligned by index:
+
+- `sequences[i]` — integer-encoded amino acids (values 0–19),
+- `posteriors[i]` — per-position `P(state = alpha | sequence)` in `[0, 1]`,
+- `states[i]` — the true hidden state path (0 = alpha, 1 = other).
+
+Sequences have different lengths, so they are not stored as a single rectangular array.
+Instead, `save_dataset` concatenates all sequences end-to-end and keeps a `lengths`
+array; `load_dataset` uses `lengths` to slice the concatenated arrays back into per-
+sequence pieces. This avoids object arrays and pickling.
+
+### Build the insulin validation file
+
+```bash
+python insulin.py
+```
+
+This downloads the mmCIF for PDB entry 1A7F, extracts both chains, and writes
+`dataset/insulin_1A7F.npz` in the same format as a training dataset (chain A at index 0,
+chain B at index 1). Requires `biopython`.
+
+### Run the checks
+
+```bash
+python sanity_check.py
+python check_forward_backward.py
+```
+
+`sanity_check.py` confirms the simulator's empirical start, transition, and emission
+frequencies match the HMM parameters. `check_forward_backward.py` verifies the posteriors
+are valid probabilities, agree with an independent Forward-Backward implementation, and
+round-trip exactly through `save_dataset`/`load_dataset`.
