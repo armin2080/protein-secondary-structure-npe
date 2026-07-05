@@ -24,5 +24,3 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
-
-Run `data_downloader.py` to download the Kaggle dataset to `dataset/`. The dataset is gitignored.
