@@ -222,3 +222,6 @@ __MACOSX/
 
 # Dataset files (downloaded by data_downloader.py)
 dataset/
+
+# Local cache created when BayesFlow imports Matplotlib diagnostics
+.matplotlib/
