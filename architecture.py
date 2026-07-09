@@ -34,7 +34,6 @@ PAD_IDX = N_SYMBOLS
 
 BAYESFLOW_INFERENCE_VARIABLES = ["alpha_posteriors"]
 BAYESFLOW_INFERENCE_CONDITIONS = ["sequence_summary"]
-BAYESFLOW_SUMMARY_VARIABLES = ["observables", "mask", "lengths"]
 
 
 def _configure_bayesflow_environment() -> None:
@@ -394,8 +393,18 @@ def create_bayesflow_adapter() -> Any:
 
     This uses BayesFlow's default adapter machinery to declare:
     - ``alpha_posteriors`` as inference variables;
-    - ``sequence_summary`` as inference conditions;
-    - ``observables``, ``mask``, and ``lengths`` as summary variables.
+    - ``sequence_summary`` as inference conditions.
+
+    No ``summary_variables`` are declared here. This project computes
+    ``sequence_summary`` *outside* BayesFlow (see ``prepare_bayesflow_batch``,
+    which runs ``SequenceSummaryNetwork`` under ``torch.no_grad()``), so there
+    is no BayesFlow-managed ``summary_network`` for raw ``observables``/
+    ``mask``/``lengths`` to flow through. Declaring them as ``summary_variables``
+    without a ``summary_network`` breaks in two ways: the adapter's
+    concatenation step fails immediately because ``lengths`` is 1-D while
+    ``observables``/``mask`` are 2-D, and even with matching shapes BayesFlow's
+    ``ConditionBuilder.resolve`` raises "Cannot use summary_variables without a
+    summary network." Verified working without them via ``workflow.fit_offline``.
 
     BayesFlow is optional for the lightweight checks in this repository. If it
     is not installed, this function raises a clear dependency error instead of
@@ -413,7 +422,7 @@ def create_bayesflow_adapter() -> Any:
     return bf.BasicWorkflow.default_adapter(
         inference_variables=BAYESFLOW_INFERENCE_VARIABLES,
         inference_conditions=BAYESFLOW_INFERENCE_CONDITIONS,
-        summary_variables=BAYESFLOW_SUMMARY_VARIABLES,
+        summary_variables=None,
     )
 
 
@@ -461,7 +470,6 @@ def create_bayesflow_components() -> dict[str, Any]:
         "inference_network": create_bayesflow_coupling_network(),
         "inference_variables": BAYESFLOW_INFERENCE_VARIABLES,
         "inference_conditions": BAYESFLOW_INFERENCE_CONDITIONS,
-        "summary_variables": BAYESFLOW_SUMMARY_VARIABLES,
     }
 
 
@@ -490,5 +498,4 @@ def create_bayesflow_workflow() -> Any:
         summary_network=None,
         inference_variables=components["inference_variables"],
         inference_conditions=components["inference_conditions"],
-        summary_variables=components["summary_variables"],
     )
