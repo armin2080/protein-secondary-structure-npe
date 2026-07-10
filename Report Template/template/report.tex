@@ -304,9 +304,12 @@ Forward-Backward posterior value within the BayesFlow posterior samples, and tes
 uniformity of these ranks.
 
 Figure~\ref{fig:sbc} shows the SBC rank histogram and Probability Integral Transform (PIT)
-ECDF. Deviation from uniformity, quantified by the Kolmogorov-Smirnov statistic, indicates
-that the posterior is not perfectly calibrated — consistent with the deterministic-target
-nature of this problem and the CouplingFlow's difficulty modeling exact-zero point masses.
+ECDF. The rank distribution is shifted rightward (mean~0.65, only 27\% of ranks below 0.5),
+indicating that the BayesFlow posterior \textbf{systematically underestimates} $P(\alpha)$
+relative to the Forward-Backward ground truth. This directional bias, together with the
+deviation from uniformity quantified by the Kolmogorov-Smirnov statistic, is consistent
+with the deterministic-target nature of this problem and the CouplingFlow's difficulty
+modeling exact-zero point masses at position~0 of every sequence.
 
 \begin{figure}
     \centering
@@ -323,11 +326,15 @@ Per-position z-scores are computed as $z_t = (P_t^{\text{true}} - \hat{\mu}_t) /
 standard deviation from BayesFlow samples. For a well-calibrated posterior, z-scores
 should approximately follow $\mathcal{N}(0,1)$.
 
-Figure~\ref{fig:zscore} shows the z-score distribution diagnostic. Z-scores are centered
-near zero (unbiased) but overdispersed ($\text{std}>1$), indicating the posterior is
-wider than it should be — the model is conservative. The credible interval coverage
-panel shows empirical vs.\ nominal coverage; deviation above the diagonal confirms
-conservative uncertainty estimates.
+Figure~\ref{fig:zscore} shows the z-score distribution diagnostic. After trimming extreme
+outliers (1.1\% of positions retain $|z|<10$), z-scores have mean~0.63 and std~1.27,
+indicating a \textbf{systematic positive bias}: the posterior mean underestimates the true
+$P(\alpha)$. The credible interval coverage panel (bottom right) shows empirical coverage
+\textbf{slightly below} the nominal level at all tested intervals (e.g., 87.3\% vs.\ 90\%
+nominal), indicating mild undercoverage rather than conservatism. The combination of
+overdispersed z-scores with undercoverage reflects posterior distributions that are
+simultaneously too wide in spread but biased in location, so their credible intervals
+miss the true value more often than the nominal rate.
 
 \begin{figure}
     \centering
