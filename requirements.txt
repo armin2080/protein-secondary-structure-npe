@@ -3,3 +3,5 @@ hmmlearn
 biopython
 torch
 bayesflow>=2.0
+matplotlib
+pandas

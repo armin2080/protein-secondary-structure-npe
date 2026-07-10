@@ -84,9 +84,35 @@ chain B at index 1). Requires `biopython`.
 ```bash
 python sanity_check.py
 python check_forward_backward.py
+python check_architecture.py
+python check_training_smoke.py
+python check_training_pipeline.py
 ```
 
 `sanity_check.py` confirms the simulator's empirical start, transition, and emission
 frequencies match the HMM parameters. `check_forward_backward.py` verifies the posteriors
 are valid probabilities, agree with an independent Forward-Backward implementation, and
-round-trip exactly through `save_dataset`/`load_dataset`.
+round-trip exactly through `save_dataset`/`load_dataset`. `check_architecture.py` and
+`check_training_smoke.py` verify the padding/masking/BiLSTM architecture and BayesFlow
+component configuration. `check_training_pipeline.py` is a fast end-to-end smoke test of
+the training pipeline.
+
+### Train the BayesFlow posterior estimator
+
+```bash
+python train.py
+```
+
+Builds a real-sized simulated dataset, pretrains the BiLSTM summary network
+(`architecture.SequenceSummaryNetwork`), freezes it, runs a small automated
+hyperparameter search over the BayesFlow coupling flow, retrains the best
+configuration for longer, and saves everything needed downstream:
+
+- `checkpoints/summary_network.pt`, `checkpoints/model.keras`,
+  `checkpoints/manifest.json` — trained weights + the exact configuration used;
+- `plots/pretrain_loss.png`, `plots/hyperparameter_search.png`,
+  `plots/bayesflow_loss.png` — loss-trajectory diagnostics;
+- `results/hyperparameter_search.csv` — every searched configuration's final loss.
+
+This takes 40-60 minutes on CPU. See `SECTION3_NOTES.md` for the full pipeline
+design.
