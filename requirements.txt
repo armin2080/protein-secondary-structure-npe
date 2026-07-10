@@ -1,3 +1,5 @@
 numpy
 hmmlearn
 biopython
+torch
+bayesflow>=2.0
