@@ -61,7 +61,7 @@
 % ------------------------------------------------
 \title{Inference of Protein Secondary Structure\\with HMMs and BayesFlow}
 \subtitle{Simulation-Based Inference — Project Report}
-\author{Armin Maddah Asl \and Samaneh Naghdbishi \and Kiana Ebrahimi \and Geri Lila}
+\author{Armin Maddah Asl \and Samaneh Naghdbishi \and Kiana Ebrahimi Farbod \and Geri Lila}
 \institute{TU Dortmund University\\[4pt] \textcolor{gray}{\footnotesize Course Instructor: Prof.\ Dr.\ Paul Bürkner}}
 \date{\today}
 
@@ -234,49 +234,51 @@ Human insulin \textbf{1A7F} (chain A: 21 aa, chain B: 29 aa).
 
 \begin{columns}[T,totalwidth=\textwidth]
 
-% ==================== LEFT COLUMN ====================
-\begin{column}{0.48\textwidth}
+% ==================== LEFT COLUMN: State Transitions (visual anchor) ====================
+\begin{column}{0.50\textwidth}
 
-% --- Top-Left: State Transitions ---
 {\fontsize{7.5}{8.5}\selectfont
 \textbf{\textcolor{darkgreen}{State Transitions}}
 }
 
-\vspace{0.06cm}
+\vspace{0.14cm}
 
-% Compact transition diagram
+% Enlarged transition diagram — the hero of this slide
 \begin{center}
 \begin{tikzpicture}[
-  state/.style={circle, draw=darkgreen, fill=darkgreen!7, line width=0.8pt,
-                minimum size=1.0cm, font=\fontsize{6.5}{7.5}\selectfont\bfseries},
-  arrow/.style={->, >=stealth, line width=0.7pt, color=navy},
-  label/.style={font=\fontsize{5.5}{6.5}\selectfont, text=navy}
+  state/.style={circle, draw=darkgreen, fill=darkgreen!7, line width=1.0pt,
+                minimum size=1.35cm, font=\fontsize{9}{11}\selectfont\bfseries},
+  arrow/.style={->, >=stealth, line width=0.9pt, color=navy},
+  label/.style={font=\fontsize{8}{10}\selectfont, text=navy}
 ]
 
 \node[state, text=darkgreen] (a) at (0,0) {$\alpha$};
-\node[state, text=gold] (o) at (3.0,0) {other};
+\node[state, text=gold] (o) at (3.2,0) {other};
 
-\draw[arrow] (a) edge[loop, out=100, in=140, looseness=8] node[label, above=0.18cm] {0.90} (a);
-\draw[arrow] (o) edge[loop, out=40, in=80, looseness=8] node[label, above=0.18cm] {0.95} (o);
+\draw[arrow] (a) edge[loop, out=100, in=140, looseness=8] node[label, above=0.20cm] {0.90} (a);
+\draw[arrow] (o) edge[loop, out=40, in=80, looseness=8] node[label, above=0.20cm] {0.95} (o);
 \draw[arrow] (a) to[bend left=20] node[label, above] {0.10} (o);
 \draw[arrow] (o) to[bend left=20] node[label, below] {0.05} (a);
 
-\node[below=0.08cm of a, font=\fontsize{5}{6}\selectfont, text=darkgreen] {ALPHA};
-\node[below=0.08cm of o, font=\fontsize{5}{6}\selectfont, text=gold] {OTHER};
+\node[below=0.14cm of a, font=\fontsize{6.5}{7.5}\selectfont, text=darkgreen] {ALPHA};
+\node[below=0.14cm of o, font=\fontsize{6.5}{7.5}\selectfont, text=gold] {OTHER};
 \end{tikzpicture}
 \end{center}
 
-\vspace{0.04cm}
+\vspace{0.16cm}
 
 {\fontsize{6.5}{7.5}\selectfont
 \textcolor{navy}{
-\textbf{Deterministic start:} $P(S_1=\text{other})=1.0,\ P(S_1=\alpha)=0.0$\\[2pt]
+\textbf{Deterministic start:} $P(S_1=\text{other})=1.0,\ P(S_1=\alpha)=0.0$\\[3pt]
 \textbf{Highly persistent:} $\alpha$ stays $\alpha$ (90\%), other stays other (95\%)
 }}
 
-% --- Bottom-Left: Emissions ---
-\vspace{0.12cm}
+\end{column}
 
+% ==================== RIGHT COLUMN: Emissions + Prior ====================
+\begin{column}{0.46\textwidth}
+
+% --- Selected Emission Contrasts ---
 {\fontsize{7.5}{8.5}\selectfont
 \textbf{\textcolor{darkgreen}{Selected Emission Contrasts}}
 }
@@ -302,12 +304,9 @@ Amino acid & $\alpha$-helix & other & Role \\
 \textcolor{gray}{Full $20 \times 2$ table in written report.}
 }
 
-\end{column}
+% --- Prior Dynamics ---
+\vspace{0.16cm}
 
-% ==================== RIGHT COLUMN ====================
-\begin{column}{0.48\textwidth}
-
-% --- Top-Right: Prior Dynamics ---
 {\fontsize{7.5}{8.5}\selectfont
 \textbf{\textcolor{darkgreen}{Prior Dynamics}}
 }
@@ -333,26 +332,6 @@ Prior strongly favors \textbf{non-helical} states ($\sim$67\%).
 };
 \end{tikzpicture}
 
-% --- Bottom-Right: Analytical Targets ---
-\vspace{0.12cm}
-
-{\fontsize{7.5}{8.5}\selectfont
-\textbf{\textcolor{darkgreen}{Analytical Targets (Forward-Backward)}}
-}
-
-\vspace{0.06cm}
-
-{\fontsize{6.5}{7.5}\selectfont
-\textcolor{navy}{
-\textbf{Exact per-position posterior:}\\[2pt]
-$P(S_t = \alpha \mid \mathbf{y})$ computed analytically\\[-0.5mm]
-via \texttt{hmmlearn.CategoricalHMM}.\\[4pt]
-\textbf{No fitting:} parameters set manually,\\[-0.5mm]
-never \texttt{.fit()}.\\[4pt]
-\textbf{Ground truth:} noise-free, exact targets\\[-0.5mm]
-for network training.
-}}
-
 \end{column}
 
 \end{columns}
@@ -363,6 +342,21 @@ for network training.
 \hspace{0.95cm}
 {\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 3/12}}
 \vspace{0.26cm}
+
+\note{%
+\textbf{Slide 3 --- the two-state HMM.}
+Hidden states are $\alpha$-helix and ``other'' (sheets + coils); the transition matrix is
+fixed and known --- set by hand, never fitted.
+Both states are highly self-persistent (0.90 and 0.95 on the diagonal), so the chain
+emits contiguous runs, like real secondary-structure segments.
+Derive the stationary distribution from $\pi P = \pi$: with exit rates $0.10$
+($\alpha\!\to$other) and $0.05$ (other$\to\alpha$), balance gives
+$\pi(\alpha) = 0.05/(0.05+0.10) = 1/3 \approx 33\%$, so $\pi(\text{other}) \approx 67\%$
+--- the prior favours non-helix roughly 2:1.
+Emissions differ by state: alanine and glutamate are formers (higher $\alpha$
+probability), proline and glycine are breakers (higher under ``other''); the full
+$20\times2$ table is in the written report.
+}
 
 \end{frame}
 
@@ -442,29 +436,23 @@ $P(S_0 = \alpha) \equiv 0$ (position 0 = seq.\ position 1).
 \begin{column}{0.48\textwidth}
 
 {\fontsize{8.5}{10.0}\selectfont
-\textbf{\textcolor{darkgreen}{Dataset Split}}
+\textbf{\textcolor{darkgreen}{On-demand Generation}}
 }
 
-\vspace{0.10cm}
+\vspace{0.06cm}
 
-\begin{center}
-{\fontsize{7.0}{8.0}\selectfont
-\begin{tabular}{lrl}
-\toprule
-Split & Sequences & Positions \\
-\midrule
-Training & \textbf{800} & $\sim$28,000 \\
-Validation & \textbf{200} & $\sim$7,000 \\
-Test (held-out) & \textbf{200} & $\sim$6,800 \\
-\bottomrule
-\end{tabular}
-}
-\end{center}
+{\fontsize{7.0}{8.5}\selectfont
+\textcolor{navy}{
+\texttt{generate\_dataset(n, \ldots)} produces\\[2pt]
+any number of \texttt{(sequence, posterior,}\\[1pt]
+\texttt{states)} tuples. Downstream code\\[2pt]
+chooses the split sizes.
+}}
 
-\vspace{0.10cm}
+\vspace{0.18cm}
 
 {\fontsize{8.5}{10.0}\selectfont
-\textbf{\textcolor{darkgreen}{Fixed Global Padding}}
+\textbf{\textcolor{darkgreen}{Variable-Length by Design}}
 }
 
 \vspace{0.08cm}
@@ -474,9 +462,11 @@ Test (held-out) & \textbf{200} & $\sim$6,800 \\
       line width=0.4pt, text width=5.2cm, minimum height=0.85cm, align=center]{
 {\fontsize{6.8}{7.8}\selectfont
 \textcolor{navy}{
-All sequences padded to \texttt{max\_len = 60}\\
-CouplingFlow input dimensionality fixed\\
-at construction — must be consistent.
+Sequences kept \textbf{ragged} (10–60 aa),\\
+each stored with its own length.\\
+The data layer does \textbf{not pad} — padding\\
+\& masking are handled downstream by\\
+the summary network (Member~2).
 }}
 };
 \end{tikzpicture}
@@ -505,6 +495,24 @@ at construction — must be consistent.
 \hspace{0.95cm}
 {\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 4/12}}
 \vspace{0.26cm}
+
+\note{%
+\textbf{Slide 4 --- data generation.}
+The simulator draws hidden states by Markov sampling, then emits amino acids
+independently at each position; lengths are uniform on 10--60 aa and everything is
+100\% simulated --- no real proteins.
+Targets are the exact per-position posteriors $P(S_t = \alpha \mid \mathbf{y})$ from the
+Forward--Backward algorithm via \texttt{hmmlearn.CategoricalHMM}, with parameters set by
+hand (never \texttt{.fit()}). Emphasise that these targets are \emph{deterministic}: the
+same sequence always yields the same posterior --- there is no sampling noise.
+Position~0 is forced: because the start distribution puts all mass on ``other'',
+$P(S_0 = \alpha) \equiv 0$ --- a clean sanity check, and we verify every target against an
+independent pure-NumPy Forward--Backward solver.
+Data is stored ragged (each sequence with its own length); padding and masking are
+deliberately deferred to Member~2's summary network. \texttt{generate\_dataset(n, \ldots)}
+yields any number of tuples --- the 800/200/200 split lives in the downstream training and
+diagnostics code, not in this data layer.
+}
 
 \end{frame}
 
@@ -1214,7 +1222,7 @@ before training $\to$ strictly bound all draws in $(0,1)$.
 \footnotesize\textcolor{gray}{armin.maddah@tu-dortmund.de}\\[6pt]
 \textbf{Samaneh Naghdbishi}\\[-0.5mm]
 \footnotesize\textcolor{gray}{samaneh.naghdbishi@tu-dortmund.de}\\[6pt]
-\textbf{Kiana Ebrahimi}\\[-0.5mm]
+\textbf{Kiana Ebrahimi Farbod}\\[-0.5mm]
 \footnotesize\textcolor{gray}{kiana.ebrahimi@tu-dortmund.de}\\[6pt]
 \textbf{Geri Lila}\\[-0.5mm]
 \footnotesize\textcolor{gray}{geri.lila@tu-dortmund.de}
