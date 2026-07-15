@@ -13,7 +13,7 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{tikz}
-\usetikzlibrary{positioning}
+\usetikzlibrary{positioning,decorations.pathreplacing,shapes.geometric}
 \usepackage{amsmath}
 
 % ------------------------------------------------
@@ -60,7 +60,7 @@
 % Title information
 % ------------------------------------------------
 \title{Inference of Protein Secondary Structure\\with HMMs and BayesFlow}
-\subtitle{Simulation-Based Inference — Project Report}
+\subtitle{Simulation-Based Inference}
 \author{Armin Maddah Asl \and Samaneh Naghdbishi \and Kiana Ebrahimi Farbod \and Geri Lila}
 \institute{TU Dortmund University\\[4pt] \textcolor{gray}{\footnotesize Course Instructor: Prof.\ Dr.\ Paul Bürkner}}
 \date{\today}
@@ -206,7 +206,7 @@ Human insulin \textbf{1A7F} (chain A: 21 aa, chain B: 29 aa).
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 2/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 2}}
 \vspace{0.26cm}
 
 \end{frame}
@@ -340,7 +340,7 @@ Prior strongly favors \textbf{non-helical} states ($\sim$67\%).
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 3/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 3}}
 \vspace{0.26cm}
 
 \note{%
@@ -493,7 +493,7 @@ the summary network.
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 4/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 4}}
 \vspace{0.26cm}
 
 \note{%
@@ -586,7 +586,7 @@ diagnostics code, not in this data layer.
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 5/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 5}}
 \vspace{0.26cm}
 
 \end{frame}
@@ -659,7 +659,7 @@ diagnostics code, not in this data layer.
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 6/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 6}}
 \vspace{0.26cm}
 
 \end{frame}
@@ -677,111 +677,125 @@ diagnostics code, not in this data layer.
     (current page.south east);
 \end{tikzpicture}
 
-\vspace{0.28cm}
+\vspace{0.18cm}
 \hspace{0.30cm}
 \begin{minipage}{0.90\textwidth}
 
 {\large\textbf{\textcolor{navy}{Diagnostics: Adapted Simulation-Based Calibration}}}
 
-\vspace{0.10cm}
+\vspace{0.06cm}
 
 \begin{columns}[T,totalwidth=\textwidth]
 
-% ----- LEFT: Challenge -----
-\begin{column}{0.45\textwidth}
+% ===== LEFT: Why standard SBC fails =====
+\begin{column}{0.42\textwidth}
 
-{\fontsize{8.5}{10.0}\selectfont
-\textbf{\textcolor{darkgreen}{Standard SBC}}
+{\fontsize{9.5}{11.0}\selectfont
+\textbf{\textcolor{darkgreen}{Why Standard SBC Does Not Apply}}
 }
 
-\vspace{0.06cm}
-
-{\fontsize{7.0}{8.2}\selectfont
-\textcolor{navy}{
-Draw $\boldsymbol{\theta} \sim p(\boldsymbol{\theta})$ from prior.\\[2pt]
-Simulate data $\mathbf{x} \sim p(\mathbf{x} \mid \boldsymbol{\theta})$.\\[2pt]
-Compute posterior, check if ranks of\\[-0.5mm]
-$\boldsymbol{\theta}_{\text{true}}$ are uniform.
-}}
-
-\vspace{0.18cm}
-
-{\fontsize{8.5}{10.0}\selectfont
-\textbf{\textcolor{red}{Our Challenge}}
-}
-
-\vspace{0.06cm}
+\vspace{0.12cm}
 
 \begin{tikzpicture}
-\node[fill=red!5, draw=red!20, rounded corners=3pt,
-      line width=0.4pt, text width=5.2cm, minimum height=1.3cm, align=center]{
-{\fontsize{6.5}{7.5}\selectfont
+\node[fill=red!6, draw=red!30, rounded corners=4pt, line width=0.6pt,
+      text width=5.0cm, inner sep=8pt, align=left]{
+{\fontsize{8.0}{9.5}\selectfont
 \textcolor{navy}{
-HMM parameters are \textbf{fixed \& known}.\\[2pt]
-$P(\alpha_t \mid \mathbf{y})$ is a \textbf{deterministic}\\[-0.5mm]
-function of the input — no parameter\\[-0.5mm]
-uncertainty to recover.
+\textbf{Standard SBC} (Talts et al., 2018):\\[4pt]
+$\theta \sim p(\theta)$ \hspace{0.6cm} (draw parameter)\\[2pt]
+$x \sim p(x \mid \theta)$ \hspace{0.3cm} (simulate data)\\[2pt]
+Rank $\theta_{\text{true}}$ in posterior\\[2pt]
+$\to$ Ranks must be \textbf{uniform}.
+}}
+
+\vspace{0.12cm}
+
+{\fontsize{8.5}{10.0}\selectfont
+\textbf{\textcolor{red}{The Problem}}
+}
+
+\vspace{0.08cm}
+
+{\fontsize{7.5}{9.0}\selectfont
+\textcolor{navy}{
+HMM parameters are \textbf{fixed}.\\[2pt]
+$P(\alpha \mid \mathbf{y})$ is a \textbf{deterministic}\\[1pt]
+function of the sequence.\\[2pt]
+\textbf{No $\theta$ to sample} from a prior.\\[2pt]
+$\to$ Standard SBC is impossible.
 }}
 };
 \end{tikzpicture}
 
 \end{column}
 
-% ----- RIGHT: Our Method -----
-\begin{column}{0.52\textwidth}
+% ===== RIGHT: Our adaptation =====
+\begin{column}{0.55\textwidth}
 
-{\fontsize{8.5}{10.0}\selectfont
-\textbf{\textcolor{darkgreen}{Our Adapted Method}}
+{\fontsize{9.5}{11.0}\selectfont
+\textbf{\textcolor{darkgreen}{Our Adaptation: Position-wise SBC}}
 }
 
-\vspace{0.08cm}
+\vspace{0.10cm}
 
-% Steps as numbered boxes
+% Visual: rank explanation — simple & robust
 \begin{center}
 \begin{tikzpicture}[
-  sbox/.style={fill=darkgreen!7, draw=darkgreen!20, rounded corners=2pt,
-               line width=0.4pt, text width=5.5cm, minimum height=0.60cm,
-               font=\fontsize{6.3}{7.3}\selectfont, align=left, text=navy},
-  arrow/.style={->, >=stealth, line width=0.5pt, color=gray}
+  dot/.style={circle, fill=blue!40, inner sep=2.8pt},
+  scale=0.95
 ]
 
-\node[sbox] (s1) {\textbf{1.} Draw $S$ test sequences from the HMM.};
-\node[sbox, below=0.28cm of s1] (s2) {\textbf{2.} Generate $M$ posterior draws from CouplingFlow at each position $t$.};
-\node[sbox, below=0.28cm of s2] (s3) {\textbf{3.} Rank the true FB target value within the flow's posterior draws.};
-\node[sbox, below=0.28cm of s3] (s4) {\textbf{4.} Test uniformity: rank histogram, PIT ECDF, KS statistic.};
+% Posterior draws (blue dots at various y)
+\node[dot] at (0.5, 0.22) {};
+\node[dot] at (1.2, 0.45) {};
+\node[dot] at (1.9, 0.15) {};
+\node[dot] at (2.6, 0.38) {};
+\node[dot] at (3.3, 0.30) {};
+\node[dot] at (4.0, 0.41) {};
+\node[dot] at (4.7, 0.20) {};
+\node[dot] at (5.4, 0.35) {};
 
-\draw[arrow] (s1) -- (s2);
-\draw[arrow] (s2) -- (s3);
-\draw[arrow] (s3) -- (s4);
+% Truth (red marker above most)
+\node[regular polygon, regular polygon sides=3, fill=red!60, inner sep=3.2pt, rotate=180] at (3.0, 0.55) {};
+
+% Dashed line at truth level
+\draw[dashed, gray, thin] (-0.1, 0.55) -- (6.0, 0.55);
+
+% Labels
+\node[font=\fontsize{6.5}{7.5}\selectfont, text=red!60, anchor=west] at (5.8, 0.55) {FB truth};
+\node[font=\fontsize{6.5}{7.5}\selectfont, text=blue!50, anchor=west] at (5.8, 0.22) {flow draws};
+
+% Brace
+\draw[decorate, decoration={brace, amplitude=5pt, mirror}, color=red!60, line width=0.8pt]
+  (0.3, -0.30) -- (4.5, -0.30);
+\node[red!60, font=\fontsize{6.5}{7.5}\selectfont] at (2.4, -0.65)
+  {rank = \# draws below truth};
 
 \end{tikzpicture}
 \end{center}
 
-\vspace{0.12cm}
-
-{\fontsize{8.5}{10.0}\selectfont
-\textbf{\textcolor{darkgreen}{What This Tests}}
-}
-
 \vspace{0.06cm}
 
+% The key idea box
 \begin{tikzpicture}
-\node[fill=darkgreen!7, draw=darkgreen!20, rounded corners=3pt,
-      line width=0.4pt, text width=5.5cm, minimum height=0.70cm, align=center]{
-{\fontsize{6.5}{7.5}\selectfont
-\textcolor{navy}{
-Does the BayesFlow posterior \textbf{envelope} the\\[-0.3mm]
-deterministic FB value with correct frequency?
-}}
+\node[fill=darkgreen!7, draw=darkgreen!30, rounded corners=4pt, line width=0.6pt,
+      text width=6.5cm, inner sep=7pt, align=left, font=\fontsize{7.2}{8.5}\selectfont, text=navy]{
+\textbf{Key idea:} Instead of ranking an unknown
+parameter, rank the \textbf{known} FB target
+within the flow's posterior draws at
+\textbf{each sequence position}.\\[3pt]
+\textbf{6,764 positions} tested $\to$ rank histogram,
+PIT ECDF, KS statistic.\\[8pt]
+{\fontsize{7.5}{9.0}\selectfont
+\textbf{\textcolor{darkgreen}{Tests:}} Does the flow's posterior
+\textbf{envelope} the true value uniformly?\\[2pt]
+$\equiv$ Is the posterior \textbf{calibrated per quantile}?
+}
 };
 \end{tikzpicture}
 
-\vspace{0.12cm}
+\vspace{0.06cm}
 
-{\fontsize{6.5}{7.5}\selectfont
-\textcolor{gray}{
-Note: Not a classical prior-predictive SBC — adapted for the deterministic-target setting.
-}}
 
 \end{column}
 
@@ -791,7 +805,7 @@ Note: Not a classical prior-predictive SBC — adapted for the deterministic-tar
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 7/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 7}}
 \vspace{0.26cm}
 
 \end{frame}
@@ -809,52 +823,58 @@ Note: Not a classical prior-predictive SBC — adapted for the deterministic-tar
     (current page.south east);
 \end{tikzpicture}
 
-\vspace{0.28cm}
+\vspace{0.16cm}
 \hspace{0.30cm}
-\begin{minipage}{0.90\textwidth}
+\begin{minipage}{0.94\textwidth}
 
-{\large\textbf{\textcolor{navy}{Calibration Results — Adapted SBC}}}
+{\large\textbf{\textcolor{navy}{Calibration Results — Adapted SBC Diagnostics}}}
 
-\vspace{0.12cm}
+\vspace{0.06cm}
 
-\begin{columns}[T,totalwidth=\textwidth]
-
-% ----- LEFT: Big Plot (70%) -----
-\begin{column}{0.68\textwidth}
-
+% ===== PLOTS: Full width, side by side =====
 \begin{center}
-\includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{sbc.png}
+\includegraphics[width=0.485\linewidth,height=0.44\textheight,keepaspectratio]{sbc_hist.png}%
+\hfill%
+\includegraphics[width=0.485\linewidth,height=0.44\textheight,keepaspectratio]{sbc_pit.png}
 \end{center}
 
-\end{column}
-
-% ----- RIGHT: Headline (30%) -----
-\begin{column}{0.29\textwidth}
-
-{\fontsize{9.0}{10.5}\selectfont
-\textbf{\textcolor{red}{Systematic Underestimation}}
+\vspace{-0.06cm}
+{\centering\fontsize{6.2}{7.0}\selectfont
+\textcolor{gray}{Rank histogram (left) \qquad PIT ECDF with KS statistic (right) \qquad 6,764 positions}\par
 }
 
-\vspace{0.12cm}
+\vspace{0.04cm}
 
-{\fontsize{7.5}{9.0}\selectfont
-\textcolor{navy}{
-Rank histogram shifted \textbf{rightward}:\\[3pt]
-mean rank = \textbf{0.65}\\[1pt]
-only \textbf{27\%} below 0.50\\[6pt]
-\textcolor{red}{KS = \textbf{0.234}}
-}}
+% ===== CARDS: Side by side below plots =====
+\begin{columns}[T,totalwidth=\textwidth]
 
-\vspace{0.25cm}
+\begin{column}{0.48\textwidth}
+\begin{tikzpicture}
+\node[fill=red!5, draw=red!40, rounded corners=4pt, line width=0.6pt,
+      text width=\linewidth-0.2cm, inner sep=5pt, align=left,
+      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
+\textbf{\textcolor{red}{Adapted SBC Results}}\\[3pt]
+$\bullet$\; Mean Rank = \textbf{0.65}
+\qquad{\fontsize{6.2}{7.0}\selectfont\textcolor{gray}{(Rightward skew)}}\\[2pt]
+$\bullet$\; Only \textbf{27\%} of ranks below 0.50\\[2pt]
+$\bullet$\; KS Distance = \textbf{0.234}
+\qquad{\fontsize{6.2}{7.0}\selectfont\textcolor{gray}{(Highly significant)}}
+};
+\end{tikzpicture}
+\end{column}
 
-{\fontsize{7.5}{9.0}\selectfont
-\textcolor{navy}{
-True FB $P(\alpha)$ is frequently\\[-0.3mm]
-\textbf{larger} than posterior draws.\\[3pt]
-$\to$ Padded zero boundaries pull\\[-0.3mm]
-the continuous flow toward 0.
-}}
-
+\begin{column}{0.48\textwidth}
+\begin{tikzpicture}
+\node[fill=darkgreen!6, draw=darkgreen!40, rounded corners=4pt, line width=0.6pt,
+      text width=\linewidth-0.2cm, inner sep=5pt, align=left,
+      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
+\textbf{\textcolor{darkgreen}{The Spatial Cause}}\\[3pt]
+Position 0 (deterministic start) and padded\\[1pt]
+boundaries are \textbf{exact zeros}. Normalizing\\[1pt]
+flows are continuous — they struggle to\\[1pt]
+represent \textbf{point masses}.
+};
+\end{tikzpicture}
 \end{column}
 
 \end{columns}
@@ -863,7 +883,7 @@ the continuous flow toward 0.
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 8/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 8}}
 \vspace{0.26cm}
 
 \end{frame}
@@ -881,53 +901,60 @@ the continuous flow toward 0.
     (current page.south east);
 \end{tikzpicture}
 
-\vspace{0.28cm}
+\vspace{0.20cm}
 \hspace{0.30cm}
 \begin{minipage}{0.90\textwidth}
 
-{\large\textbf{\textcolor{navy}{Calibration Results — Z-Score \& Coverage}}}
+{\large\textbf{\textcolor{navy}{Calibration Results — Z-Score \& Coverage Diagnostics}}}
 
-\vspace{0.12cm}
+\vspace{0.08cm}
 
 \begin{columns}[T,totalwidth=\textwidth]
 
-% ----- LEFT: Big Plot (70%) -----
-\begin{column}{0.68\textwidth}
+% ===== LEFT: Big 4-panel plot (76%) =====
+\begin{column}{0.76\textwidth}
 
 \begin{center}
-\includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{zscore_coverage.png}
+\includegraphics[width=\linewidth,height=0.74\textheight,keepaspectratio]{zscore_coverage.png}
 \end{center}
 
 \end{column}
 
-% ----- RIGHT: Headline (30%) -----
-\begin{column}{0.29\textwidth}
+% ===== RIGHT: Two stacked cards (22%), top-aligned =====
+\begin{column}{0.22\textwidth}
+\vspace{0.50cm}
 
-{\fontsize{9.0}{10.5}\selectfont
-\textbf{\textcolor{red}{Undercoverage \& Bias}}
-}
+% Card 1: Key Metrics
+\begin{tikzpicture}
+\node[fill=red!5, draw=red!40, rounded corners=3pt, line width=0.5pt,
+      text width=2.5cm, inner sep=5pt, align=left,
+      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
+\textbf{\textcolor{red}{Key Metrics}}\\[3pt]
+Raw Z-std = \textbf{71.4}\\[1pt]
+{\fontsize{6.0}{7.0}\selectfont\textcolor{gray}{(pos-0 degeneracy)}}\\[3pt]
+Trimmed (1.1\%):\\[1pt]
+\; mean = \textbf{0.63}\\[1pt]
+\; std = \textbf{1.27}\\[3pt]
+Coverage:\\[1pt]
+\; \textbf{87\%} vs.\ 90\%
+};
+\end{tikzpicture}
 
 \vspace{0.12cm}
 
-{\fontsize{7.5}{9.0}\selectfont
-\textcolor{navy}{
-Raw z-score std = \textbf{71.4}\\[3pt]
-Trimmed (1.1\% outliers removed):\\[-0.3mm]
-mean = \textbf{0.63},
-std = \textbf{1.27}\\[6pt]
-\textcolor{red}{87\% empirical vs.\ 90\% nominal}\\[1pt]
-\textcolor{red}{93\% empirical vs.\ 95\% nominal}
-}}
-
-\vspace{0.25cm}
-
-{\fontsize{7.5}{9.0}\selectfont
-\textcolor{navy}{
-Posteriors are \textbf{too narrow}\\[-0.3mm]
-and \textbf{slightly biased}.\\[3pt]
-$\to$ Localized overconfidence\\[-0.3mm]
-at sequence boundaries.
-}}
+% Card 2: Overconfidence
+\begin{tikzpicture}
+\node[fill=darkgreen!6, draw=darkgreen!40, rounded corners=3pt, line width=0.5pt,
+      text width=2.5cm, inner sep=5pt, align=left,
+      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
+\textbf{\textcolor{darkgreen}{Overconfidence}}\\[3pt]
+Biased mean (0.63)\\[1pt]
++ std $>$ 1.0 (1.27)\\[1pt]
+$\to$ posteriors \textbf{too}\\[1pt]
+\textbf{narrow} at\\[1pt]
+boundaries.
+};
+\end{tikzpicture}
 
 \end{column}
 
@@ -937,14 +964,14 @@ at sequence boundaries.
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 9/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 9}}
 \vspace{0.26cm}
 
 \end{frame}
 
 
 % ================================================
-% SLIDE 10 — Synthetic Evaluation: Posterior Contraction
+% SLIDE 10 — Synthetic Evaluation & Posterior Contraction
 % ================================================
 \begin{frame}[plain]
 
@@ -955,70 +982,94 @@ at sequence boundaries.
     (current page.south east);
 \end{tikzpicture}
 
-\vspace{0.28cm}
+\vspace{0.04cm}
 \hspace{0.30cm}
-\begin{minipage}{0.90\textwidth}
+\begin{minipage}{0.92\textwidth}
 
-{\large\textbf{\textcolor{navy}{Synthetic Evaluation — Posterior Contraction}}}
+{\large\textbf{\textcolor{navy}{Synthetic Evaluation \& Posterior Contraction}}}
 
-\vspace{0.10cm}
+\vspace{0.02cm}
 
+% ===== TOP: Two sequences side by side =====
 \begin{columns}[T,totalwidth=\textwidth]
 
-% ----- LEFT: Big Plot (70%) -----
-\begin{column}{0.68\textwidth}
-
+\begin{column}{0.49\textwidth}
 \begin{center}
-\includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{contraction.png}
+\includegraphics[width=\linewidth,height=0.32\textheight,keepaspectratio]{contraction_seq0.png}
 \end{center}
-
-\vspace{-0.10cm}
-
-{\fontsize{5.5}{6.5}\selectfont
-\textcolor{gray}{Black = true $P(\alpha)$. Blue band = 90\% CI. Red = BiLSTM point estimate.}
-}
-
 \end{column}
 
-% ----- RIGHT: Headline (30%) -----
-\begin{column}{0.29\textwidth}
+\begin{column}{0.49\textwidth}
+\begin{center}
+\includegraphics[width=\linewidth,height=0.32\textheight,keepaspectratio]{contraction_seq2.png}
+\end{center}
+\end{column}
 
-{\fontsize{9.0}{10.5}\selectfont
-\textbf{\textcolor{red}{BiLSTM Wins on Accuracy}}
+\end{columns}
+
+{\centering\fontsize{6.5}{7.5}\selectfont
+\textcolor{gray}{Black = True $P(\alpha)$ \quad Blue band = BayesFlow 90\% CI \quad Red dashes = BiLSTM point}\par
 }
 
-\vspace{0.10cm}
+\vspace{0.02cm}
 
-{\fontsize{7.5}{9.0}\selectfont
+% ===== BOTTOM: Table + Cards =====
+\begin{columns}[T,totalwidth=\textwidth]
+
+% Left: Table
+\begin{column}{0.44\textwidth}
+{\fontsize{8.5}{10.0}\selectfont
+\textbf{\textcolor{darkgreen}{Accuracy Metrics}}
+}
+
+\vspace{0.04cm}
+
+{\fontsize{7.0}{8.2}\selectfont
+\renewcommand{\arraystretch}{1.35}
 \begin{tabular}{lcc}
 \toprule
- & BayesFlow & BiLSTM \\
+\textbf{Model} & \textbf{MAE} & \textbf{$r$} \\
 \midrule
-MAE & 0.115 & \textbf{0.021} \\
-Corr & 0.560 & \textbf{0.988} \\
+Baseline (sequence-blind) & 0.162 & 0.200 \\
+BayesFlow (median)         & 0.115 & 0.560 \\
+\textbf{BiLSTM} (point)    & \textbf{0.060} & \textbf{0.988} \\
 \bottomrule
 \end{tabular}
 }
 
-\vspace{0.18cm}
+\vspace{0.02cm}
 
-{\fontsize{7.5}{9.0}\selectfont
-\textcolor{navy}{
-FB target is \textbf{deterministic}\\[-0.3mm]
-— direct network learns it\\[-0.3mm]
-more efficiently than a\\[-0.3mm]
-density estimator.
-}}
+{\fontsize{6.2}{7.2}\selectfont
+\textcolor{gray}{\textit{6,764 positions. Both beat the naive baseline.}}
+}
+\end{column}
 
-\vspace{0.25cm}
+% Right: Cards
+\begin{column}{0.54\textwidth}
 
-{\fontsize{7.5}{9.0}\selectfont
-\textcolor{darkgreen}{
-\textbf{But:} BayesFlow gives\\[-0.3mm]
-\textbf{uncertainty quantification}\\[-0.3mm]
-— credible intervals,\\[-0.3mm]
-SBC, z-scores, coverage.
-}}
+\begin{tikzpicture}
+\node[fill=green!5, draw=darkgreen!35, rounded corners=4pt, line width=0.5pt,
+      text width=\linewidth-0.3cm, inner sep=5pt, align=left,
+      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
+\textbf{\textcolor{darkgreen}{Why BiLSTM Wins}}\\[2pt]
+$P(\alpha \mid \mathbf{y})$ is a \textbf{deterministic} function of\\[1pt]
+the sequence. A direct network learns it with\\[1pt]
+near-zero error. A flow models a residual density.
+};
+\end{tikzpicture}
+
+\vspace{0.08cm}
+
+\begin{tikzpicture}
+\node[fill=orange!5, draw=gold!60, rounded corners=4pt, line width=0.5pt,
+      text width=\linewidth-0.3cm, inner sep=5pt, align=left,
+      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
+\textbf{\textcolor{gold}{Why We Still Use BayesFlow}}\\[2pt]
+BiLSTM yields \textbf{no uncertainty}. BayesFlow\\[1pt]
+provides full amortized posteriors $\to$ credible\\[1pt]
+intervals, SBC, z-scores, and coverage diagnostics.
+};
+\end{tikzpicture}
 
 \end{column}
 
@@ -1028,7 +1079,7 @@ SBC, z-scores, coverage.
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 10/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 10}}
 \vspace{0.26cm}
 
 \end{frame}
@@ -1046,75 +1097,84 @@ SBC, z-scores, coverage.
     (current page.south east);
 \end{tikzpicture}
 
-\vspace{0.28cm}
+\vspace{0.12cm}
 \hspace{0.30cm}
-\begin{minipage}{0.90\textwidth}
+\begin{minipage}{0.92\textwidth}
 
 {\large\textbf{\textcolor{navy}{Real-World Validation — Human Insulin (1A7F)}}}
 
-\vspace{0.10cm}
+\vspace{0.06cm}
 
+% ===== TOP: Two chains side by side =====
 \begin{columns}[T,totalwidth=\textwidth]
 
-% ----- LEFT: Big Plot (70%) -----
-\begin{column}{0.68\textwidth}
-
+\begin{column}{0.49\textwidth}
 \begin{center}
-\includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{insulin_predictions.png}
+\includegraphics[width=\linewidth,height=0.30\textheight,keepaspectratio]{insulin_chainA.png}
 \end{center}
-
-\vspace{-0.10cm}
-
-{\fontsize{5.5}{6.5}\selectfont
-\textcolor{gray}{Orange = experimental $\alpha$-helix. Blue = BayesFlow. Red = BiLSTM.}
-}
-
 \end{column}
 
-% ----- RIGHT: Headline (30%) -----
-\begin{column}{0.29\textwidth}
+\begin{column}{0.49\textwidth}
+\begin{center}
+\includegraphics[width=\linewidth,height=0.30\textheight,keepaspectratio]{insulin_chainB.png}
+\end{center}
+\end{column}
 
-{\fontsize{9.0}{10.5}\selectfont
-\textbf{\textcolor{darkgreen}{Chain B}}
+\end{columns}
+
+\vspace{-0.02cm}
+{\centering\fontsize{6.5}{7.5}\selectfont
+\textcolor{gray}{\textcolor{orange}{$\blacksquare$} Orange = Experimental Helix \quad \textcolor{gray!50}{$\blacksquare$} Grey = Experimental Other \quad Blue = BayesFlow \quad Red = BiLSTM}\par
 }
 
 \vspace{0.06cm}
 
-{\fontsize{7.5}{9.0}\selectfont
-\textcolor{navy}{
-BayesFlow\\[-0.3mm]
-$r = \mathbf{0.86}$\\[2pt]
-34.5\% true helix\\[1pt]
-$\approx \pi = 33\%$
-}}
+% ===== BOTTOM: Story + Proof =====
+\begin{columns}[T,totalwidth=\textwidth]
 
-\vspace{0.22cm}
-
-{\fontsize{9.0}{10.5}\selectfont
-\textbf{\textcolor{red}{Chain A}}
+% Left: The Statistical Mechanism
+\begin{column}{0.50\textwidth}
+{\fontsize{8.5}{10.0}\selectfont
+\textbf{\textcolor{darkgreen}{The Statistical Mechanism}}
 }
 
 \vspace{0.06cm}
 
-{\fontsize{7.5}{9.0}\selectfont
-\textcolor{navy}{
-BayesFlow\\[-0.3mm]
-$r = \mathbf{0.17}$\\[2pt]
-61.9\% true helix\\[1pt]
-$\gg \pi = 33\%$
-}}
+\begin{tikzpicture}
+\node[fill=darkgreen!5, draw=darkgreen!30, rounded corners=4pt, line width=0.5pt,
+      text width=\linewidth-0.4cm, inner sep=6pt, align=left,
+      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
+\textbf{\textcolor{darkgreen}{Chain B — Agreement}} ($r{=}0.86$)\\[2pt]
+34.5\% true helix $\approx \pi{=}33\%$ prior. Prior\\[1pt]
+and evidence agree $\to$ high accuracy.\\[5pt]
+\textbf{\textcolor{red}{Chain A — Conflict}} ($r{=}0.17$)\\[2pt]
+61.9\% true helix $\gg 33\%$ prior. Severe\\[1pt]
+prior-data conflict over only 21 residues.\\[2pt]
+{\fontsize{6.2}{7.2}\selectfont\textcolor{gray}{\textit{Both beat sequence-blind baseline (MAE=0.162, $r$=0.200).}}}
+};
+\end{tikzpicture}
+\end{column}
 
-\vspace{0.22cm}
+% Right: Key Proof
+\begin{column}{0.48\textwidth}
+{\fontsize{8.5}{10.0}\selectfont
+\textbf{\textcolor{red}{Key Proof — Model Limitation}}
+}
 
-{\fontsize{7.5}{9.0}\selectfont
-\textcolor{darkgreen}{
-\textbf{Key proof:} FB itself\\[-0.3mm]
-fails on Chain A\\[-0.3mm]
-($r \approx 0.40$).\\[3pt]
-$\to$ \textbf{Model limitation,}\\[-0.3mm]
-\textbf{not network failure.}
-}}
+\vspace{0.06cm}
 
+\begin{tikzpicture}
+\node[fill=red!5, draw=red!50, rounded corners=4pt, line width=0.6pt,
+      text width=\linewidth-0.4cm, inner sep=6pt, align=left,
+      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
+\textbf{\textcolor{red}{Exact FB also fails on Chain A}}\\[3pt]
+Running the \textbf{exact analytical Forward-Backward}\\[1pt]
+solver on Chain A achieves only \textbf{$r \approx 0.40$}.\\[4pt]
+$\to$ The failure is a \textbf{model limitation} of the\\[1pt]
+2-state HMM, \textbf{not} a neural network issue.\\[4pt]
+{\fontsize{6.2}{7.2}\selectfont\textcolor{gray}{No amount of training can exceed the HMM's ceiling.}}
+};
+\end{tikzpicture}
 \end{column}
 
 \end{columns}
@@ -1123,7 +1183,7 @@ $\to$ \textbf{Model limitation,}\\[-0.3mm]
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 11/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 11}}
 \vspace{0.26cm}
 
 \end{frame}
@@ -1244,7 +1304,7 @@ before training $\to$ strictly bound all draws in $(0,1)$.
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 12/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 12}}
 \vspace{0.26cm}
 
 \end{frame}
