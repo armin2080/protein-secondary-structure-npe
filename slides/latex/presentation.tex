@@ -633,7 +633,7 @@ diagnostics code, not in this data layer.
 % Stage 2 — single row, compact
 \node[box, minimum width=2.0cm, fill=teal!8, draw=teal!25, below=0.5cm of s1a] (s2a) {Frozen\\BiLSTM};
 \node[box, minimum width=2.2cm, fill=teal!8, draw=teal!25, right=of s2a] (s2b) {Condition\\dim 124};
-\node[box, minimum width=2.0cm, fill=teal!8, draw=teal!25, right=of s2b] (s2c) {CouplingFlow\\depth 6, w 128};
+\node[box, minimum width=2.0cm, fill=teal!8, draw=teal!25, right=of s2b] (s2c) {CouplingFlow\\depth 10, w 128};
 \node[box, minimum width=1.8cm, fill=teal!8, draw=teal!25, right=of s2c] (s2d) {Posterior\\Draws};
 \draw[arrow, color=teal] (s2a) -- (s2b);
 \draw[arrow, color=teal] (s2b) -- (s2c);
@@ -650,7 +650,7 @@ diagnostics code, not in this data layer.
 {\fontsize{7.2}{8.5}\selectfont
 \textcolor{navy}{
 \textbf{1.} BiLSTM pretrained on masked BCE $\to$ frozen $\to$ condition (dim 124).\\[6pt]
-\textbf{2.} CouplingFlow: depth~6, hidden~128, affine, actnorm $\to$ posterior draws.\\[6pt]
+\textbf{2.} CouplingFlow: depth~10, hidden~128, affine, actnorm $\to$ posterior draws.\\[6pt]
 \textbf{3.} \textcolor{red}{Model selection:} \textbf{not} flow val\_loss. Rank by masked MAE \& correlation.
 }}
 \end{center}
