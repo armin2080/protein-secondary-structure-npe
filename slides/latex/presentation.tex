@@ -46,7 +46,22 @@
 \setbeamercolor{date}{fg=gray}
 
 \setbeamertemplate{navigation symbols}{}
-\setbeamertemplate{footline}{}
+
+% Green header bar
+\setbeamertemplate{headline}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[topgreen] (current page.north west) rectangle
+      ([yshift=-0.13cm]current page.north east);
+  \end{tikzpicture}
+}
+
+% Navy footer bar
+\setbeamertemplate{footline}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+      (current page.south east);
+  \end{tikzpicture}
+}
 
 % Slide padding
 \setbeamersize{text margin left=0.70cm,text margin right=0.70cm}
