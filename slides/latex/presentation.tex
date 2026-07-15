@@ -489,6 +489,15 @@ the summary network.
 
 \end{columns}
 
+\vspace{0.06cm}
+
+\begin{center}
+{\fontsize{6.6}{7.6}\selectfont
+\textcolor{navy}{
+\textbf{\textcolor{darkgreen}{Real-world validation:}} human insulin \textbf{1A7F} prepared here --- sequence $+$ experimental $\alpha$-labels (used in slide~11).
+}}
+\end{center}
+
 \end{minipage}
 
 \vfill
@@ -511,7 +520,7 @@ independent pure-NumPy Forward--Backward solver.
 Data is stored ragged (each sequence with its own length); padding and masking are
 deliberately deferred to Member~2's summary network. \texttt{generate\_dataset(n, \ldots)}
 yields any number of tuples --- the 800/200/200 split lives in the downstream training and
-diagnostics code, not in this data layer.
+diagnostics code, not in this data layer. Also mention you prepared the human insulin \textbf{1A7F} validation set (structure parse, des-B30 mutant, experimental $\alpha$-labels), shown on slide~11.
 }
 
 \end{frame}
