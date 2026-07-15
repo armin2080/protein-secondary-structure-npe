@@ -610,49 +610,65 @@ diagnostics code, not in this data layer.
 
 {\large\textbf{\textcolor{navy}{Two-Stage Training \& CouplingFlow}}}
 
-\vspace{0.14cm}
+\vspace{0.22cm}
 
-% Simplified training diagram
+{\fontsize{7.5}{8.5}\selectfont
+\textbf{\textcolor{darkgreen}{Training Pipeline}}
+}
+
+\vspace{0.12cm}
+
 \begin{center}
 \begin{tikzpicture}[
-  box/.style={fill=darkgreen!7, draw=darkgreen!20, rounded corners=2pt,
-              line width=0.4pt, minimum height=0.50cm,
-              font=\fontsize{5.2}{6.0}\selectfont, align=center, text=navy},
-  arrow/.style={->, >=stealth, line width=0.6pt, color=gray},
-  node distance=0.30cm
+  box/.style={rounded corners=2.5pt, line width=0.5pt,
+              minimum height=0.78cm, minimum width=2.15cm,
+              font=\fontsize{6.5}{7.6}\selectfont, align=center, text=navy},
+  arrow/.style={->, >=stealth, line width=0.8pt},
+  node distance=0.44cm
 ]
 
-% Stage 1 — single row, compact
-\node[box, minimum width=2.0cm, fill=blue!8, draw=blue!25] (s1a) {Sequences\\$+$ FB targets};
-\node[box, minimum width=2.0cm, fill=blue!8, draw=blue!25, right=of s1a] (s1b) {BiLSTM\\BCE pretrain};
-\node[box, minimum width=1.8cm, fill=blue!8, draw=blue!25, right=of s1b] (s1c) {Trained\\BiLSTM};
-\draw[arrow, color=blue] (s1a) -- (s1b);
-\draw[arrow, color=blue] (s1b) -- (s1c);
-\node[above=0.02cm of s1a, font=\fontsize{5.5}{6}\selectfont, text=blue] {\textbf{Stage 1}};
+% --- Stage 1 ---
+\node[box, fill=blue!8,  draw=blue!30] (s1a) {Sequences\\$+$ FB targets};
+\node[box, fill=blue!8,  draw=blue!30, right=of s1a] (s1b) {BiLSTM\\BCE pretrain};
+\node[box, fill=blue!8,  draw=blue!30, right=of s1b] (s1c) {Trained\\BiLSTM};
+\draw[arrow, color=blue!70] (s1a) -- (s1b);
+\draw[arrow, color=blue!70] (s1b) -- (s1c);
+\node[left=0.30cm of s1a, font=\fontsize{6.2}{7}\selectfont, text=blue] {\textbf{Stage 1}};
 
-% Stage 2 — single row, compact
-\node[box, minimum width=2.0cm, fill=teal!8, draw=teal!25, below=0.5cm of s1a] (s2a) {Frozen\\BiLSTM};
-\node[box, minimum width=2.2cm, fill=teal!8, draw=teal!25, right=of s2a] (s2b) {Condition\\dim 124};
-\node[box, minimum width=2.0cm, fill=teal!8, draw=teal!25, right=of s2b] (s2c) {CouplingFlow\\depth 6, w 128};
-\node[box, minimum width=1.8cm, fill=teal!8, draw=teal!25, right=of s2c] (s2d) {Posterior\\Draws};
-\draw[arrow, color=teal] (s2a) -- (s2b);
-\draw[arrow, color=teal] (s2b) -- (s2c);
-\draw[arrow, color=teal] (s2c) -- (s2d);
-\node[above=0.02cm of s2a, font=\fontsize{5.5}{6}\selectfont, text=teal] {\textbf{Stage 2}};
+% --- Stage 2 ---
+\node[box, fill=teal!8, draw=teal!30, below=1.05cm of s1a] (s2a) {Frozen\\BiLSTM};
+\node[box, fill=teal!8, draw=teal!30, right=of s2a] (s2b) {Condition\\dim 124};
+\node[box, fill=teal!12, draw=teal!45, line width=0.8pt, right=of s2b] (s2c) {CouplingFlow\\depth 10, w 128};
+\node[box, fill=teal!8, draw=teal!30, right=of s2c] (s2d) {Posterior\\draws};
+\draw[arrow, color=teal!80] (s2a) -- (s2b);
+\draw[arrow, color=teal!80] (s2b) -- (s2c);
+\draw[arrow, color=teal!80] (s2c) -- (s2d);
+\node[left=0.30cm of s2a, font=\fontsize{6.2}{7}\selectfont, text=teal] {\textbf{Stage 2}};
+
 
 \end{tikzpicture}
 \end{center}
 
-\vspace{0.06cm}
+\vspace{0.16cm}
 
-% 3 clean takeaways
+{\fontsize{7.5}{8.5}\selectfont
+\textbf{\textcolor{darkgreen}{Key Design Decisions}}
+}
+
+\vspace{0.10cm}
+
 \begin{center}
-{\fontsize{7.2}{8.5}\selectfont
+\begin{tikzpicture}
+\node[fill=navy!3, draw=navy!18, rounded corners=3pt, line width=0.4pt,
+      text width=12.4cm, inner sep=7pt, align=left]{
+{\fontsize{7.2}{10.0}\selectfont
 \textcolor{navy}{
-\textbf{1.} BiLSTM pretrained on masked BCE $\to$ frozen $\to$ condition (dim 124).\\[6pt]
-\textbf{2.} CouplingFlow: depth~6, hidden~128, affine, actnorm $\to$ posterior draws.\\[6pt]
-\textbf{3.} \textcolor{red}{Model selection:} \textbf{not} flow val\_loss. Rank by masked MAE \& correlation.
+\textcolor{blue}{\textbf{1.}}~BiLSTM pretrained on masked BCE, then \textbf{frozen} $\to$ condition (dim 124 $=$ 64 pooled $+$ 60 logits).\\[3pt]
+\textcolor{teal}{\textbf{2.}}~CouplingFlow: depth~10, hidden~128, affine, actnorm $\to$ posterior draws.\\[3pt]
+\textcolor{red}{\textbf{3.}}~\textcolor{red}{\textbf{Model selection:}} \textbf{not} flow \texttt{val\_loss} $\to$ rank by masked MAE \& correlation \textcolor{gray}{(selected depth 10)}.
 }}
+};
+\end{tikzpicture}
 \end{center}
 
 \end{minipage}
@@ -660,10 +676,8 @@ diagnostics code, not in this data layer.
 \vfill
 \hspace{0.95cm}
 {\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 6/12}}
-\vspace{0.26cm}
 
 \end{frame}
-
 
 % ================================================
 % SLIDE 7 — Diagnostics: Adapted SBC
