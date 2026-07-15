@@ -231,3 +231,4 @@ checkpoints/
 plots/
 results/
 _check_training_pipeline_artifacts/
+.DS_Store
