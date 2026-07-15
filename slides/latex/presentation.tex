@@ -37,6 +37,7 @@
 % ------------------------------------------------
 % Beamer colors
 % ------------------------------------------------
+\setbeamercolor{background canvas}{bg=light}
 \setbeamercolor{frametitle}{fg=navy}
 \setbeamercolor{title}{fg=navy}
 \setbeamercolor{subtitle}{fg=gray}
@@ -46,17 +47,6 @@
 
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{footline}{}
-
-% Header/footer bars via background canvas — renders under all content
-\setbeamertemplate{background canvas}{%
-  \begin{tikzpicture}[remember picture,overlay]
-    \fill[light] (current page.south west) rectangle (current page.north east);
-    \fill[topgreen] (current page.north west) rectangle
-      ([yshift=-0.13cm]current page.north east);
-    \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
-      (current page.south east);
-  \end{tikzpicture}
-}
 
 % Slide padding
 \setbeamersize{text margin left=0.70cm,text margin right=0.70cm}
@@ -98,6 +88,12 @@
 % ================================================
 \begin{frame}[plain]
 
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[topgreen] (current page.north west) rectangle
+    ([yshift=-0.13cm]current page.north east);
+  \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+    (current page.south east);
+\end{tikzpicture}
 
 \vspace{0.28cm}
 \hspace{0.30cm}
@@ -221,6 +217,12 @@ Human insulin \textbf{1A7F} (chain A: 21 aa, chain B: 29 aa).
 % ================================================
 \begin{frame}[plain]
 
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[topgreen] (current page.north west) rectangle
+    ([yshift=-0.13cm]current page.north east);
+  \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+    (current page.south east);
+\end{tikzpicture}
 
 \vspace{0.28cm}
 \hspace{0.30cm}
@@ -364,6 +366,12 @@ $20\times2$ table is in the written report.
 % ================================================
 \begin{frame}[plain]
 
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[topgreen] (current page.north west) rectangle
+    ([yshift=-0.13cm]current page.north east);
+  \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+    (current page.south east);
+\end{tikzpicture}
 
 \vspace{0.28cm}
 \hspace{0.30cm}
@@ -523,6 +531,12 @@ diagnostics code, not in this data layer. Also mention you prepared the human in
 % ================================================
 \begin{frame}[plain]
 
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[topgreen] (current page.north west) rectangle
+    ([yshift=-0.13cm]current page.north east);
+  \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+    (current page.south east);
+\end{tikzpicture}
 
 \vspace{0.28cm}
 \hspace{0.30cm}
@@ -592,6 +606,12 @@ diagnostics code, not in this data layer. Also mention you prepared the human in
 % ================================================
 \begin{frame}[plain]
 
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[topgreen] (current page.north west) rectangle
+    ([yshift=-0.13cm]current page.north east);
+  \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+    (current page.south east);
+\end{tikzpicture}
 
 \vspace{0.28cm}
 \hspace{0.30cm}
@@ -673,6 +693,12 @@ diagnostics code, not in this data layer. Also mention you prepared the human in
 % ================================================
 \begin{frame}[plain]
 
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[topgreen] (current page.north west) rectangle
+    ([yshift=-0.13cm]current page.north east);
+  \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+    (current page.south east);
+\end{tikzpicture}
 
 \vspace{0.18cm}
 \hspace{0.30cm}
@@ -813,6 +839,12 @@ $\equiv$ Is the posterior \textbf{calibrated per quantile}?
 % ================================================
 \begin{frame}[plain]
 
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[topgreen] (current page.north west) rectangle
+    ([yshift=-0.13cm]current page.north east);
+  \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+    (current page.south east);
+\end{tikzpicture}
 
 \vspace{0.16cm}
 \hspace{0.30cm}
@@ -885,6 +917,12 @@ represent \textbf{point masses}.
 % ================================================
 \begin{frame}[plain]
 
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[topgreen] (current page.north west) rectangle
+    ([yshift=-0.13cm]current page.north east);
+  \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+    (current page.south east);
+\end{tikzpicture}
 
 \vspace{0.20cm}
 \hspace{0.30cm}
@@ -960,6 +998,12 @@ boundaries.
 % ================================================
 \begin{frame}[plain]
 
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[topgreen] (current page.north west) rectangle
+    ([yshift=-0.13cm]current page.north east);
+  \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+    (current page.south east);
+\end{tikzpicture}
 
 \vspace{0.04cm}
 \hspace{0.30cm}
@@ -1069,6 +1113,12 @@ intervals, SBC, z-scores, and coverage diagnostics.
 % ================================================
 \begin{frame}[plain]
 
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[topgreen] (current page.north west) rectangle
+    ([yshift=-0.13cm]current page.north east);
+  \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+    (current page.south east);
+\end{tikzpicture}
 
 \vspace{0.12cm}
 \hspace{0.30cm}
@@ -1167,6 +1217,12 @@ $\to$ The failure is a \textbf{model limitation} of the\\[1pt]
 % ================================================
 \begin{frame}[plain]
 
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[topgreen] (current page.north west) rectangle
+    ([yshift=-0.13cm]current page.north east);
+  \fill[navy] ([yshift=0.18cm]current page.south west) rectangle
+    (current page.south east);
+\end{tikzpicture}
 
 \vspace{0.28cm}
 \hspace{0.30cm}
