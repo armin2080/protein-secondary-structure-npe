@@ -1164,71 +1164,69 @@ $\to$ The failure is a \textbf{model limitation} of the\\[1pt]
 % ================================================
 \begin{frame}[plain]
 
-\vspace{0.14cm}
+\vspace{0.16cm}
 \hspace{0.30cm}
 \begin{minipage}{0.92\textwidth}
 
 {\large\textbf{\textcolor{navy}{Take-Home Messages \& Future Outlook}}}
 
-\vspace{0.10cm}
+\vspace{0.12cm}
 
-% ===== TOP: Three take-home messages =====
-{\fontsize{7.5}{9.0}\selectfont
+% ===== Three take-home messages =====
+{\fontsize{8.0}{9.5}\selectfont
 \textcolor{navy}{
-\textbf{1. Sequence Matters} — BiLSTM summary networks capture sequential\\
-\hspace{1.1em}dependencies where permutation-invariant architectures fail.\\[4pt]
-\textbf{2. Beyond Point Estimates} — BayesFlow amortizes full posterior densities,\\
-\hspace{1.1em}enabling uncertainty quantification (SBC, z-scores, coverage).\\[4pt]
-\textbf{3. Prior Typicality} — Real-world validation reveals the necessity of\\
-\hspace{1.1em}checking prior-data conflicts (e.g., Insulin Chain A).
+\textbf{1. Sequence Matters} — BiLSTM networks capture sequential\\
+\hspace{0.8em}dependencies where permutation-invariant architectures fail.\\[6pt]
+\textbf{2. Beyond Point Estimates} — BayesFlow amortizes full posterior\\
+\hspace{0.8em}densities, enabling SBC, z-scores, and coverage diagnostics.\\[6pt]
+\textbf{3. Prior Typicality} — Real-world validation reveals the necessity\\
+\hspace{0.8em}of checking prior-data conflicts (e.g., Insulin Chain A).
 }}
 
-\vspace{0.06cm}
+\vspace{0.10cm}
 \hrule
-\vspace{0.08cm}
+\vspace{0.12cm}
 
-% ===== BOTTOM: Two cards side by side =====
+% ===== Two cards side by side =====
 \begin{columns}[T,totalwidth=\textwidth]
 
 % Left: Limitations & Fixes
 \begin{column}{0.50\textwidth}
-{\fontsize{8.5}{10.0}\selectfont
+{\fontsize{9.0}{10.5}\selectfont
 \textbf{\textcolor{red}{Limitations \& Potential Fixes}}
 }
 
-\vspace{0.06cm}
+\vspace{0.08cm}
 
 \begin{tikzpicture}
-\node[fill=orange!5, draw=orange!50, rounded corners=4pt, line width=0.6pt,
-      text width=\linewidth-0.3cm, inner sep=6pt, align=left,
-      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
-\textbf{The HMM:} Expand to \textbf{3 states} ($\alpha$, $\beta$, coil)\\[1pt]
-and treat transition matrices as \textbf{inferable}\\[1pt]
-parameters under Beta priors.\\[4pt]
-\textbf{The Flow:} Pass targets through a \textbf{logit}\\[1pt]
-transform before training $\to$ strictly bound\\[1pt]
-all posterior draws in $(0, 1)$.
+\node[fill=orange!6, draw=orange!50, rounded corners=4pt, line width=0.6pt,
+      text width=\linewidth-0.2cm, inner sep=8pt, align=left,
+      font=\fontsize{7.5}{9.0}\selectfont, text=navy]{
+\textbf{The HMM:} Expand to 3 states ($\alpha$, $\beta$, coil)\\[2pt]
+and infer transition parameters under priors.\\[6pt]
+\textbf{The Flow:} Pass targets through a logit\\[2pt]
+transform before training $\to$ bound draws in $(0,1)$.
 };
 \end{tikzpicture}
 \end{column}
 
 % Right: Team & Code
 \begin{column}{0.48\textwidth}
-{\fontsize{8.5}{10.0}\selectfont
+{\fontsize{9.0}{10.5}\selectfont
 \textbf{\textcolor{darkgreen}{Group Members \& Code}}
 }
 
-\vspace{0.06cm}
+\vspace{0.08cm}
 
 \begin{tikzpicture}
 \node[fill=blue!3, draw=blue!30, rounded corners=4pt, line width=0.6pt,
-      text width=\linewidth-0.3cm, inner sep=6pt, align=left,
-      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
-\textbf{Armin Maddah Asl}\quad{\fontsize{6.2}{7.2}\selectfont\textcolor{gray}{armin.maddah@tu-dortmund.de}}\\[1pt]
-\textbf{Samaneh Naghdbishi}\quad{\fontsize{6.2}{7.2}\selectfont\textcolor{gray}{samaneh.naghdbishi@tu-dortmund.de}}\\[1pt]
-\textbf{Kiana Ebrahimi Farbod}\quad{\fontsize{6.2}{7.2}\selectfont\textcolor{gray}{kiana.ebrahimi@tu-dortmund.de}}\\[1pt]
-\textbf{Geri Lila}\quad{\fontsize{6.2}{7.2}\selectfont\textcolor{gray}{geri.lila@tu-dortmund.de}}\\[4pt]
-{\fontsize{6.5}{7.5}\selectfont\textcolor{gray}{Code:}}\;{\fontsize{6.5}{7.5}\selectfont\textcolor{blue}{github.com/armin2080/protein-secondary-structure-npe}}
+      text width=\linewidth-0.2cm, inner sep=8pt, align=left,
+      font=\fontsize{7.5}{9.0}\selectfont, text=navy]{
+Armin Maddah Asl\\[1pt]
+Samaneh Naghdbishi\\[1pt]
+Kiana Ebrahimi Farbod\\[1pt]
+Geri Lila\\[6pt]
+\footnotesize\textcolor{blue}{\texttt{github.com/armin2080/protein-secondary-structure-npe}}
 };
 \end{tikzpicture}
 \end{column}
