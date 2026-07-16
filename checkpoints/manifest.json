@@ -1,0 +1,45 @@
+{
+  "max_len": 60,
+  "min_len": 10,
+  "n_train": 2000,
+  "n_val": 400,
+  "pretrain_config": {
+    "embedding_dim": 32,
+    "hidden_dim": 64,
+    "summary_dim": 64,
+    "num_layers": 2,
+    "dropout": 0.2,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "epochs": 60,
+    "batch_size": 64,
+    "patience": 8,
+    "grad_clip": 1.0,
+    "aux_weight": 0.5,
+    "seed": 0
+  },
+  "final_flow_config": {
+    "depth": 10,
+    "hidden_widths": [
+      128,
+      128
+    ],
+    "optimizer_name": "adamw",
+    "initial_learning_rate": 0.0005,
+    "weight_decay": 0.001,
+    "epochs": 100,
+    "batch_size": 64,
+    "early_stopping_patience": null,
+    "checkpoint_filepath": "checkpoints",
+    "save_best_only": false,
+    "seed": 0
+  },
+  "final_pretrain_train_loss": 0.46564757680892943,
+  "final_pretrain_val_loss": 0.46234583854675293,
+  "final_bayesflow_train_loss": -163.48037719726562,
+  "final_bayesflow_val_loss": -170.63986206054688,
+  "final_masked_mae": 0.06103096807858233,
+  "final_masked_corr": 0.7982275405502894,
+  "hyperparameter_search_best_masked_mae": 0.1377112671660498,
+  "hyperparameter_search_best_masked_corr": 0.4032143826957836
+}
