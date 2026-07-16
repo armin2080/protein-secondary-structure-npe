@@ -661,12 +661,89 @@ diagnostics code, not in this data layer. Also mention you prepared the human in
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 6/12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 6}}
 
 \end{frame}
 
 % ================================================
-% SLIDE 7 — Diagnostics: Adapted SBC
+% SLIDE 7 — Training Diagnostics & Convergence
+% ================================================
+\begin{frame}[plain]
+
+
+\vspace{0.20cm}
+\hspace{0.30cm}
+\begin{minipage}{0.90\textwidth}
+
+{\large\textbf{\textcolor{navy}{Training Diagnostics \& Model Selection}}}
+
+\vspace{0.14cm}
+
+\begin{columns}[T,totalwidth=\textwidth]
+
+% ===== LEFT =====
+\begin{column}{0.49\textwidth}
+{\fontsize{7.5}{8.5}\selectfont\textbf{\textcolor{darkgreen}{Stage-1 pretraining loss}}}\\[3pt]
+\begin{center}
+\includegraphics[width=\linewidth,height=0.46\textheight,keepaspectratio]{pretrain_loss.png}
+\end{center}
+\vspace{-0.10cm}
+{\fontsize{6.0}{7.2}\selectfont\textcolor{gray}{AdamW, grad-clip 1.0, early stopping (patience 8).}}
+\end{column}
+
+% ===== RIGHT =====
+\begin{column}{0.49\textwidth}
+{\fontsize{7.5}{8.5}\selectfont\textbf{\textcolor{darkgreen}{CouplingFlow hyperparameter search}}}\\[3pt]
+\begin{center}
+\includegraphics[width=\linewidth,height=0.46\textheight,keepaspectratio]{hyperparameter_search.png}
+\end{center}
+\vspace{-0.10cm}
+{\fontsize{6.0}{7.2}\selectfont\textcolor{gray}{6 configs, ranked by masked MAE \textemdash{} not flow loss $\to$ depth 10.}}
+\end{column}
+
+\end{columns}
+
+\vspace{0.18cm}
+
+\begin{center}
+\begin{tikzpicture}
+\node[fill=darkgreen!5, draw=darkgreen!40, rounded corners=4pt, line width=0.6pt,
+      text width=12.2cm, inner sep=6pt, align=left]{
+{\fontsize{7.4}{9.6}\selectfont
+\textcolor{navy}{
+\textbf{\textcolor{darkgreen}{Converged, not stuck.}}\;
+Soft targets $\Rightarrow$ BCE has an \textbf{entropy floor}; it cannot reach zero.\\[2pt]
+Validation: floor $\overline{H}=\mathbf{0.4621}$ \; achieved $=\mathbf{0.4623}$ \;$\Rightarrow$\;
+\textcolor{darkgreen}{\textbf{0.0002 from the theoretical limit}}.
+}}
+};
+\end{tikzpicture}
+\end{center}
+
+\end{minipage}
+
+\vfill
+\hspace{0.95cm}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 7}}
+
+\note{%
+Why is the loss flat at 0.46 rather than zero? Our targets are the Forward--Backward posteriors,
+which are soft probabilities, not hard labels. Cross-entropy against a soft target t is minimised
+when the prediction equals t, but even then it still pays the entropy of t --- so the loss cannot
+reach zero. That floor, averaged over the validation set, is 0.4621 nats. We reach 0.4623. Two
+ten-thousandths of a nat from the theoretical optimum: flat means finished, not stalled.
+On the right --- we do not select the flow by its own validation loss, because that loss is
+unbounded below: a config can score arbitrarily well by fitting the ~44 percent of the target
+that is exact zeros from padding. We rank by masked MAE against Forward--Backward on real
+positions instead, and that selected depth 10.
+}
+
+\end{frame}
+
+\end{frame}
+
+% ================================================
+% SLIDE 8 — Diagnostics: Adapted SBC
 % ================================================
 \begin{frame}[plain]
 
@@ -799,14 +876,14 @@ $\equiv$ Is the posterior \textbf{calibrated per quantile}?
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 7}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 8}}
 \vspace{0.26cm}
 
 \end{frame}
 
 
 % ================================================
-% SLIDE 8 — Calibration Results: Adapted SBC
+% SLIDE 9 — Calibration Results: Adapted SBC
 % ================================================
 \begin{frame}[plain]
 
@@ -821,9 +898,9 @@ $\equiv$ Is the posterior \textbf{calibrated per quantile}?
 
 % ===== PLOTS: Full width, side by side =====
 \begin{center}
-\includegraphics[width=0.495\linewidth,height=0.46\textheight,keepaspectratio]{sbc_hist.png}%
-\hspace{0.01\linewidth}%
-\includegraphics[width=0.495\linewidth,height=0.46\textheight,keepaspectratio]{sbc_pit.png}
+\includegraphics[width=0.485\linewidth,height=0.44\textheight,keepaspectratio]{sbc_hist.png}%
+\hfill%
+\includegraphics[width=0.485\linewidth,height=0.44\textheight,keepaspectratio]{sbc_pit.png}
 \end{center}
 
 \vspace{-0.06cm}
@@ -871,14 +948,14 @@ represent \textbf{point masses}.
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 8}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 9}}
 \vspace{0.26cm}
 
 \end{frame}
 
 
 % ================================================
-% SLIDE 9 — Calibration Results: Z-Score & Coverage
+% SLIDE 10 — Calibration Results: Z-Score & Coverage
 % ================================================
 \begin{frame}[plain]
 
@@ -946,14 +1023,14 @@ $\to$ posteriors\\[1pt]
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 9}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 10}}
 \vspace{0.26cm}
 
 \end{frame}
 
 
 % ================================================
-% SLIDE 10 — Synthetic Evaluation & Posterior Contraction
+% SLIDE 11 — Synthetic Evaluation & Posterior Contraction
 % ================================================
 \begin{frame}[plain]
 
@@ -1055,14 +1132,14 @@ intervals, SBC, z-scores, and coverage diagnostics.
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 10}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 11}}
 \vspace{0.26cm}
 
 \end{frame}
 
 
 % ================================================
-% SLIDE 11 — Real-World Validation: Human Insulin 1A7F
+% SLIDE 12 — Real-World Validation: Human Insulin 1A7F
 % ================================================
 \begin{frame}[plain]
 
@@ -1153,14 +1230,14 @@ $\to$ The failure is a \textbf{model limitation} of the\\[1pt]
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 11}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 12}}
 \vspace{0.26cm}
 
 \end{frame}
 
 
 % ================================================
-% SLIDE 12 — Limitations, Fixes & TL;DR
+% SLIDE 13 — Limitations, Fixes & TL;DR
 % ================================================
 \begin{frame}[plain]
 
@@ -1238,7 +1315,7 @@ Geri Lila\\[6pt]
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 13}}
 \vspace{0.26cm}
 
 \end{frame}
