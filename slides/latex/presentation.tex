@@ -1164,102 +1164,73 @@ $\to$ The failure is a \textbf{model limitation} of the\\[1pt]
 % ================================================
 \begin{frame}[plain]
 
-
-\vspace{0.28cm}
+\vspace{0.14cm}
 \hspace{0.30cm}
-\begin{minipage}{0.90\textwidth}
+\begin{minipage}{0.92\textwidth}
 
-{\large\textbf{\textcolor{navy}{Limitations, Fixes \& Take-Home Messages}}}
+{\large\textbf{\textcolor{navy}{Take-Home Messages \& Future Outlook}}}
 
-\vspace{0.15cm}
+\vspace{0.10cm}
 
+% ===== TOP: Three take-home messages =====
+{\fontsize{7.5}{9.0}\selectfont
+\textcolor{navy}{
+\textbf{1. Sequence Matters} — BiLSTM summary networks capture sequential\\
+\hspace{1.1em}dependencies where permutation-invariant architectures fail.\\[4pt]
+\textbf{2. Beyond Point Estimates} — BayesFlow amortizes full posterior densities,\\
+\hspace{1.1em}enabling uncertainty quantification (SBC, z-scores, coverage).\\[4pt]
+\textbf{3. Prior Typicality} — Real-world validation reveals the necessity of\\
+\hspace{1.1em}checking prior-data conflicts (e.g., Insulin Chain A).
+}}
+
+\vspace{0.06cm}
+\hrule
+\vspace{0.08cm}
+
+% ===== BOTTOM: Two cards side by side =====
 \begin{columns}[T,totalwidth=\textwidth]
 
-% ----- LEFT: Content -----
-\begin{column}{0.60\textwidth}
-
-{\fontsize{8.0}{9.5}\selectfont
-\textbf{\textcolor{red}{Limitation \& Fix: The HMM}}
-}
-
-\vspace{0.04cm}
-
-{\fontsize{6.8}{8.0}\selectfont
-\textcolor{navy}{
-Expand to \textbf{3 states} ($\alpha$, $\beta$, coil).\\[2pt]
-Treat transition probabilities as \textbf{inferable}\\[-0.5mm]
-parameters $\boldsymbol{\theta}$ under Beta priors.\\[2pt]
-$\to$ BayesFlow would then recover a genuine posterior over $\boldsymbol{\theta}$.
-}}
-
-\vspace{0.10cm}
-
-{\fontsize{8.0}{9.5}\selectfont
-\textbf{\textcolor{red}{Fix: The CouplingFlow}}
-}
-
-\vspace{0.04cm}
-
-\begin{tikzpicture}
-\node[fill=red!5, draw=red!20, rounded corners=3pt,
-      line width=0.4pt, text width=6.5cm, minimum height=0.65cm, align=center]{
-{\fontsize{6.5}{7.5}\selectfont
-\textcolor{navy}{
-Pass targets through a \textbf{logit transformation}\\[-0.3mm]
-before training $\to$ strictly bound all draws in $(0,1)$.
-}}
-};
-\end{tikzpicture}
-
-\vspace{0.10cm}
-
-{\fontsize{8.0}{9.5}\selectfont
-\textbf{\textcolor{darkgreen}{Take-Home Messages (TL;DR)}}
+% Left: Limitations & Fixes
+\begin{column}{0.50\textwidth}
+{\fontsize{8.5}{10.0}\selectfont
+\textbf{\textcolor{red}{Limitations \& Potential Fixes}}
 }
 
 \vspace{0.06cm}
 
-{\fontsize{6.8}{8.0}\selectfont
-\textcolor{navy}{
-\textbf{1.} BiLSTM summary nets capture sequential\\[-0.3mm]
-\ \ dependencies where permutation-invariant nets fail.\\[4pt]
-\textbf{2.} BayesFlow successfully amortizes posterior\\[-0.3mm]
-\ \ estimation, enabling robust uncertainty quantification.\\[4pt]
-\textbf{3.} Real-world validation demonstrates the necessity\\[-0.3mm]
-\ \ of prior typicality checking — identify prior-data conflicts.
-}}
-
+\begin{tikzpicture}
+\node[fill=orange!5, draw=orange!50, rounded corners=4pt, line width=0.6pt,
+      text width=\linewidth-0.3cm, inner sep=6pt, align=left,
+      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
+\textbf{The HMM:} Expand to \textbf{3 states} ($\alpha$, $\beta$, coil)\\[1pt]
+and treat transition matrices as \textbf{inferable}\\[1pt]
+parameters under Beta priors.\\[4pt]
+\textbf{The Flow:} Pass targets through a \textbf{logit}\\[1pt]
+transform before training $\to$ strictly bound\\[1pt]
+all posterior draws in $(0, 1)$.
+};
+\end{tikzpicture}
 \end{column}
 
-% ----- RIGHT: Group Members -----
-\begin{column}{0.37\textwidth}
-
-{\fontsize{8.0}{9.5}\selectfont
-\textbf{\textcolor{darkgreen}{Group Members}}
+% Right: Team & Code
+\begin{column}{0.48\textwidth}
+{\fontsize{8.5}{10.0}\selectfont
+\textbf{\textcolor{darkgreen}{Group Members \& Code}}
 }
 
-\vspace{0.10cm}
+\vspace{0.06cm}
 
-{\fontsize{6.5}{7.5}\selectfont
-\textcolor{navy}{
-\textbf{Armin Maddah Asl}\\[-0.5mm]
-\footnotesize\textcolor{gray}{armin.maddah@tu-dortmund.de}\\[6pt]
-\textbf{Samaneh Naghdbishi}\\[-0.5mm]
-\footnotesize\textcolor{gray}{samaneh.naghdbishi@tu-dortmund.de}\\[6pt]
-\textbf{Kiana Ebrahimi Farbod}\\[-0.5mm]
-\footnotesize\textcolor{gray}{kiana.ebrahimi@tu-dortmund.de}\\[6pt]
-\textbf{Geri Lila}\\[-0.5mm]
-\footnotesize\textcolor{gray}{geri.lila@tu-dortmund.de}
-}}
-
-\vspace{0.18cm}
-
-% Repo link
-{\fontsize{6.5}{7.5}\selectfont
-\textcolor{gray}{\textbf{Code:}}\\[2pt]
-\footnotesize\textcolor{blue}{\url{github.com/armin2080/protein-secondary-structure-npe}}
-}
-
+\begin{tikzpicture}
+\node[fill=blue!3, draw=blue!30, rounded corners=4pt, line width=0.6pt,
+      text width=\linewidth-0.3cm, inner sep=6pt, align=left,
+      font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
+\textbf{Armin Maddah Asl}\quad{\fontsize{6.2}{7.2}\selectfont\textcolor{gray}{armin.maddah@tu-dortmund.de}}\\[1pt]
+\textbf{Samaneh Naghdbishi}\quad{\fontsize{6.2}{7.2}\selectfont\textcolor{gray}{samaneh.naghdbishi@tu-dortmund.de}}\\[1pt]
+\textbf{Kiana Ebrahimi Farbod}\quad{\fontsize{6.2}{7.2}\selectfont\textcolor{gray}{kiana.ebrahimi@tu-dortmund.de}}\\[1pt]
+\textbf{Geri Lila}\quad{\fontsize{6.2}{7.2}\selectfont\textcolor{gray}{geri.lila@tu-dortmund.de}}\\[4pt]
+{\fontsize{6.5}{7.5}\selectfont\textcolor{gray}{Code:}}\;{\fontsize{6.5}{7.5}\selectfont\textcolor{blue}{github.com/armin2080/protein-secondary-structure-npe}}
+};
+\end{tikzpicture}
 \end{column}
 
 \end{columns}
@@ -1268,7 +1239,7 @@ before training $\to$ strictly bound all draws in $(0,1)$.
 
 \vfill
 \hspace{0.95cm}
-{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 12}}
+{\fontsize{5.5}{6.0}\selectfont\textcolor{gray}{SBI Project | 12/12}}
 \vspace{0.26cm}
 
 \end{frame}
