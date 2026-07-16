@@ -226,9 +226,5 @@ dataset/
 # Local cache created when BayesFlow imports Matplotlib diagnostics
 .matplotlib/
 
-# Training pipeline outputs (Section 3: checkpoints, diagnostics plots, HP search results)
-checkpoints/
-plots/
-results/
 _check_training_pipeline_artifacts/
 .DS_Store
