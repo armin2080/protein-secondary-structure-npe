@@ -508,7 +508,7 @@ $P(S_0 = \alpha) \equiv 0$ --- a clean sanity check, and we verify every target 
 independent pure-NumPy Forward--Backward solver.
 Data is stored ragged (each sequence with its own length); padding and masking are
 deliberately deferred to Member~2's summary network. \texttt{generate\_dataset(n, \ldots)}
-yields any number of tuples --- the 800/200/200 split lives in the downstream training and
+yields any number of tuples --- the 2000/400/200 split lives in the downstream training and
 diagnostics code, not in this data layer. Also mention you prepared the human insulin \textbf{1A7F} validation set (structure parse, des-B30 mutant, experimental $\alpha$-labels), shown on slide~11.
 }
 
@@ -842,11 +842,11 @@ $\equiv$ Is the posterior \textbf{calibrated per quantile}?
       text width=\linewidth-0.2cm, inner sep=5pt, align=left,
       font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
 \textbf{\textcolor{red}{Adapted SBC Results}}\\[3pt]
-$\bullet$\; Mean Rank = \textbf{0.65}
-\qquad{\fontsize{6.2}{7.0}\selectfont\textcolor{gray}{(Rightward skew)}}\\[2pt]
-$\bullet$\; Only \textbf{27\%} of ranks below 0.50\\[2pt]
-$\bullet$\; KS Distance = \textbf{0.234}
-\qquad{\fontsize{6.2}{7.0}\selectfont\textcolor{gray}{(Highly significant)}}
+$\bullet$\; Mean Rank = \textbf{0.54}
+\qquad{\fontsize{6.2}{7.0}\selectfont\textcolor{gray}{(Near-uniform — good calibration)}}\\[2pt]
+$\bullet$\; \textbf{42.5\%} of ranks below 0.50\\[2pt]
+$\bullet$\; KS Distance = \textbf{0.148}
+\qquad{\fontsize{6.2}{7.0}\selectfont\textcolor{gray}{(Moderate deviation)}}
 };
 \end{tikzpicture}
 \end{column}
@@ -912,13 +912,13 @@ represent \textbf{point masses}.
       text width=2.5cm, inner sep=5pt, align=left,
       font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
 \textbf{\textcolor{red}{Key Metrics}}\\[3pt]
-Raw Z-std = \textbf{71.4}\\[1pt]
+Raw Z-std = \textbf{36.2}\\[1pt]
 {\fontsize{6.0}{7.0}\selectfont\textcolor{gray}{(pos-0 degeneracy)}}\\[3pt]
 Trimmed (1.1\%):\\[1pt]
-\; mean = \textbf{0.63}\\[1pt]
-\; std = \textbf{1.27}\\[3pt]
+\; mean = \textbf{$-$0.19}\\[1pt]
+\; std = \textbf{0.94}\\[3pt]
 Coverage:\\[1pt]
-\; \textbf{87\%} vs.\ 90\%
+\; \textbf{94.2\%} vs.\ 90\%
 };
 \end{tikzpicture}
 
@@ -929,12 +929,12 @@ Coverage:\\[1pt]
 \node[fill=darkgreen!6, draw=darkgreen!40, rounded corners=3pt, line width=0.5pt,
       text width=2.5cm, inner sep=5pt, align=left,
       font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
-\textbf{\textcolor{darkgreen}{Overconfidence}}\\[3pt]
-Biased mean (0.63)\\[1pt]
-+ std $>$ 1.0 (1.27)\\[1pt]
-$\to$ posteriors \textbf{too}\\[1pt]
-\textbf{narrow} at\\[1pt]
-boundaries.
+\textbf{\textcolor{darkgreen}{Well-Calibrated}}\\[3pt]
+Mean near zero ($-$0.19)\\[1pt]
++ std $<$ 1.0 (0.94)\\[1pt]
+$\to$ posteriors\\[1pt]
+\textbf{well-spread}\\[1pt]
++ coverage 94.2\%
 };
 \end{tikzpicture}
 
@@ -1007,8 +1007,8 @@ boundaries.
 \textbf{Model} & \textbf{MAE} & \textbf{$r$} \\
 \midrule
 Baseline (sequence-blind) & 0.162 & 0.200 \\
-BayesFlow (median)         & 0.115 & 0.560 \\
-\textbf{BiLSTM} (point)    & \textbf{0.060} & \textbf{0.988} \\
+BayesFlow (median)         & 0.057 & 0.778 \\
+\textbf{BiLSTM} (point)    & \textbf{0.004} & \textbf{0.9997} \\
 \bottomrule
 \end{tabular}
 }
@@ -1114,10 +1114,10 @@ intervals, SBC, z-scores, and coverage diagnostics.
 \node[fill=darkgreen!5, draw=darkgreen!30, rounded corners=4pt, line width=0.5pt,
       text width=\linewidth-0.4cm, inner sep=6pt, align=left,
       font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
-\textbf{\textcolor{darkgreen}{Chain B — Agreement}} ($r{=}0.86$)\\[2pt]
+\textbf{\textcolor{darkgreen}{Chain B — Agreement}} ($r{=}0.85$)\\[2pt]
 34.5\% true helix $\approx \pi{=}33\%$ prior. Prior\\[1pt]
 and evidence agree $\to$ high accuracy.\\[5pt]
-\textbf{\textcolor{red}{Chain A — Conflict}} ($r{=}0.17$)\\[2pt]
+\textbf{\textcolor{red}{Chain A — Conflict}} ($r{=}0.43$)\\[2pt]
 61.9\% true helix $\gg 33\%$ prior. Severe\\[1pt]
 prior-data conflict over only 21 residues.\\[2pt]
 {\fontsize{6.2}{7.2}\selectfont\textcolor{gray}{\textit{Both beat sequence-blind baseline (MAE=0.162, $r$=0.200).}}}
