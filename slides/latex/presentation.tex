@@ -772,7 +772,7 @@ positions instead, and that selected depth 10.
       text width=5.0cm, inner sep=8pt, align=left]{
 {\fontsize{8.0}{9.5}\selectfont
 \textcolor{navy}{
-\textbf{Standard SBC} (Talts et al., 2018):\\[4pt]
+\textbf{Standard SBC} :\\[4pt]
 $\theta \sim p(\theta)$ \hspace{0.6cm} (draw parameter)\\[2pt]
 $x \sim p(x \mid \theta)$ \hspace{0.3cm} (simulate data)\\[2pt]
 Rank $\theta_{\text{true}}$ in posterior\\[2pt]
@@ -833,8 +833,8 @@ $\to$ Standard SBC is impossible.
 \draw[dashed, gray, thin] (-0.1, 0.55) -- (6.0, 0.55);
 
 % Labels
-\node[font=\fontsize{6.5}{7.5}\selectfont, text=red!60, anchor=west] at (5.8, 0.55) {FB truth};
-\node[font=\fontsize{6.5}{7.5}\selectfont, text=blue!50, anchor=west] at (5.8, 0.22) {flow draws};
+\node[font=\fontsize{6.5}{7.5}\selectfont, text=red!60, anchor=west] at (0.2, -1.00) {$\blacktriangledown$ FB truth};
+\node[font=\fontsize{6.5}{7.5}\selectfont, text=blue!50, anchor=west] at (3.5, -1.00) {$\bullet$ flow draws};
 
 % Brace
 \draw[decorate, decoration={brace, amplitude=5pt, mirror}, color=red!60, line width=0.8pt]
