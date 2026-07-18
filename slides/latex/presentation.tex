@@ -960,7 +960,7 @@ represent \textbf{point masses}.
 \begin{frame}[plain]
 
 
-\vspace{0.20cm}
+\vspace{0.15cm}
 \hspace{0.30cm}
 \begin{minipage}{0.90\textwidth}
 
@@ -970,29 +970,33 @@ represent \textbf{point masses}.
 
 \begin{columns}[T,totalwidth=\textwidth]
 
-% ===== LEFT: Big 4-panel plot (76%) =====
-\begin{column}{0.76\textwidth}
+% ===== LEFT: Two stacked plots (72%) =====
+\begin{column}{0.72\textwidth}
 
 \begin{center}
-\includegraphics[width=\linewidth,height=0.74\textheight,keepaspectratio]{zscore_coverage.png}
+\includegraphics[width=\linewidth,height=0.33\textheight,keepaspectratio]{zscore_distribution.png}
+
+\vspace{0.06cm}
+
+\includegraphics[width=\linewidth,height=0.33\textheight,keepaspectratio]{zscore_coverage.png}
 \end{center}
 
 \end{column}
 
-% ===== RIGHT: Two stacked cards (22%), top-aligned =====
-\begin{column}{0.22\textwidth}
-\vspace{0.50cm}
+% ===== RIGHT: Two stacked cards (26%) =====
+\begin{column}{0.26\textwidth}
+\vspace{0.40cm}
 
 % Card 1: Key Metrics
 \begin{tikzpicture}
 \node[fill=red!5, draw=red!40, rounded corners=3pt, line width=0.5pt,
-      text width=2.5cm, inner sep=5pt, align=left,
+      text width=2.8cm, inner sep=5pt, align=left,
       font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
 \textbf{\textcolor{red}{Key Metrics}}\\[3pt]
 Raw Z-std = \textbf{36.2}\\[1pt]
 {\fontsize{6.0}{7.0}\selectfont\textcolor{gray}{(pos-0 degeneracy)}}\\[3pt]
 Trimmed (1.1\%):\\[1pt]
-\; mean = \textbf{$-$0.19}\\[1pt]
+\; mean = \textbf{$-$0.03}\\[1pt]
 \; std = \textbf{0.94}\\[3pt]
 Coverage:\\[1pt]
 \; \textbf{94.2\%} vs.\ 90\%
@@ -1001,13 +1005,13 @@ Coverage:\\[1pt]
 
 \vspace{0.12cm}
 
-% Card 2: Overconfidence
+% Card 2: Well-Calibrated
 \begin{tikzpicture}
 \node[fill=darkgreen!6, draw=darkgreen!40, rounded corners=3pt, line width=0.5pt,
-      text width=2.5cm, inner sep=5pt, align=left,
+      text width=2.8cm, inner sep=5pt, align=left,
       font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
 \textbf{\textcolor{darkgreen}{Well-Calibrated}}\\[3pt]
-Mean near zero ($-$0.19)\\[1pt]
+Mean near zero ($-$0.03)\\[1pt]
 + std $<$ 1.0 (0.94)\\[1pt]
 $\to$ posteriors\\[1pt]
 \textbf{well-spread}\\[1pt]

@@ -350,11 +350,20 @@ def main() -> None:
     # ------------------------------------------------------------------
     print("Generating z-score analysis ...")
     z_scores = []
+    z_positions_total = 0
+    z_positions_skipped_boundary = 0
     for seq_idx in range(len(test_seqs)):
         samples = bf_samples[seq_idx]  # (n_samples, length)
         true_vals = np.asarray(test_posts[seq_idx])
         length = len(true_vals)
         for pos in range(length):
+            z_positions_total += 1
+            # Skip degenerate point-mass positions (padding & boundaries)
+            # where the HMM truth is exactly zero — these break the z-score
+            # formula because the flow's predicted std collapses to near-zero.
+            if true_vals[pos] < 1e-10:
+                z_positions_skipped_boundary += 1
+                continue
             post_samples = samples[:, pos]
             valid = np.isfinite(post_samples)
             if valid.sum() < 10:
@@ -369,67 +378,30 @@ def main() -> None:
                 z_scores.append(z)
 
     z_scores = np.array(z_scores)
-    print(f"  Z-scores computed: {len(z_scores)} (dropped {n_positions - len(z_scores)} non-finite/low-std)")
+    print(f"  Z-scores computed: {len(z_scores)} (skipped {z_positions_skipped_boundary} boundary/padding, "
+          f"dropped {z_positions_total - len(z_scores) - z_positions_skipped_boundary} non-finite/low-std)")
 
-    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-
-    # Z-score histogram vs N(0,1)
+    # -- Z-score distribution (standalone wide figure) --
     from scipy import stats as scipy_stats
-    axes[0, 0].hist(z_scores, bins=80, density=True, alpha=0.7, color="tab:blue",
-                    edgecolor="white")
-    x_grid = np.linspace(-5, 5, 200)
-    axes[0, 0].plot(x_grid, scipy_stats.norm.pdf(x_grid, 0, 1), "k-",
-                    linewidth=1.5, label="N(0,1)")
-    axes[0, 0].set_xlabel("Z-score")
-    axes[0, 0].set_ylabel("Density")
-    axes[0, 0].set_title(f"Z-score Distribution\nmean={np.mean(z_scores):.3f}, std={np.std(z_scores):.3f}")
-    axes[0, 0].legend(fontsize=8)
-    axes[0, 0].set_xlim(-5, 5)
+    z_display = z_scores[(z_scores > -4) & (z_scores < 4)]
+    n_clipped = len(z_scores) - len(z_display)
+    fig, ax = plt.subplots(1, 1, figsize=(10, 4))
+    ax.hist(z_display, bins=50, density=True, alpha=0.7, color="tab:blue",
+            edgecolor="white", linewidth=0.3)
+    x_grid = np.linspace(-4, 4, 300)
+    ax.plot(x_grid, scipy_stats.norm.pdf(x_grid, 0, 1), "k--",
+            linewidth=1.5, label="N(0,1)")
+    ax.set_xlabel("Z-score")
+    ax.set_ylabel("Density")
+    ax.set_title(f"Z-score Distribution (|z| < 4)  —  mean={np.mean(z_display):.3f}, std={np.std(z_display):.3f}"
+                 + (f"  [{n_clipped} clipped]" if n_clipped else ""))
+    ax.legend(fontsize=10, loc="upper right", framealpha=0.7, edgecolor="gray")
+    ax.set_xlim(-4, 4)
+    fig.tight_layout()
+    fig.savefig(os.path.join(PLOTS_DIR, "zscore_distribution.png"), dpi=180)
+    plt.close(fig)
 
-    # QQ of z-scores vs N(0,1)
-    sorted_z = np.sort(z_scores)
-    theo = scipy_stats.norm.ppf((np.arange(len(sorted_z)) + 0.5) / len(sorted_z))
-    axes[0, 1].scatter(theo, sorted_z, s=1, alpha=0.3, color="tab:blue")
-    axes[0, 1].plot([-4, 4], [-4, 4], "k--", alpha=0.3)
-    axes[0, 1].set_xlabel("N(0,1) quantiles")
-    axes[0, 1].set_ylabel("Observed z-score quantiles")
-    axes[0, 1].set_title("Z-score QQ Plot")
-    axes[0, 1].set_xlim(-4, 4)
-    axes[0, 1].set_ylim(-4, 4)
-
-    # Z-score vs true P(alpha) — check for systematic miscalibration
-    all_positions = np.concatenate([np.arange(len(p)) for p in test_posts])
-    # Recompute matching z-scores aligned with positions
-    z_vs_true = []
-    z_true_vals = []
-    for seq_idx in range(len(test_seqs)):
-        samples = bf_samples[seq_idx]
-        true_vals = np.asarray(test_posts[seq_idx])
-        length = len(true_vals)
-        for pos in range(length):
-            valid = np.isfinite(samples[:, pos])
-            if valid.sum() < 10:
-                continue
-            valid_samples = samples[valid, pos]
-            pred_mean = np.nanmean(valid_samples)
-            pred_std = np.nanstd(valid_samples)
-            if pred_std < 1e-8:
-                continue
-            z = (true_vals[pos] - pred_mean) / pred_std
-            if np.isfinite(z):
-                z_vs_true.append(z)
-                z_true_vals.append(true_vals[pos])
-
-    z_vs_true = np.array(z_vs_true)
-    z_true_vals = np.array(z_true_vals)
-    axes[1, 0].hexbin(z_true_vals, z_vs_true, gridsize=30, cmap="Blues", mincnt=1)
-    axes[1, 0].axhline(0, color="k", linestyle="--", alpha=0.3)
-    axes[1, 0].set_xlabel("True P(alpha)")
-    axes[1, 0].set_ylabel("Z-score")
-    axes[1, 0].set_title("Z-score vs True P(alpha)")
-    axes[1, 0].set_ylim(-5, 5)
-
-    # Coverage: fraction of true values in [0.025, 0.975] credible interval
+    # -- Credible interval coverage (standalone wide figure) --
     credible_levels = np.arange(0.05, 1.0, 0.05)
     empirical_coverage = []
     for level in credible_levels:
@@ -441,6 +413,8 @@ def main() -> None:
             true_vals = np.asarray(test_posts[seq_idx])
             length = len(true_vals)
             for pos in range(length):
+                if true_vals[pos] < 1e-10:  # skip boundary/padding
+                    continue
                 valid = np.isfinite(samples[:, pos])
                 if valid.sum() < 10:
                     continue
@@ -452,17 +426,17 @@ def main() -> None:
                 total += 1
         empirical_coverage.append(covered / total if total > 0 else 0)
 
-    axes[1, 1].plot([0, 1], [0, 1], "k--", alpha=0.3, label="Ideal")
-    axes[1, 1].plot(credible_levels, empirical_coverage, "o-", color="tab:blue",
-                    linewidth=1.5, markersize=3, label="BayesFlow")
-    axes[1, 1].set_xlabel("Nominal credible level")
-    axes[1, 1].set_ylabel("Empirical coverage")
-    axes[1, 1].set_title("Credible Interval Coverage")
-    axes[1, 1].legend(fontsize=8)
-    axes[1, 1].grid(True, alpha=0.3)
-
+    fig, ax = plt.subplots(1, 1, figsize=(10, 4))
+    ax.plot([0, 1], [0, 1], "k--", alpha=0.3, label="Ideal")
+    ax.plot(credible_levels, empirical_coverage, "o-", color="tab:blue",
+            linewidth=1.5, markersize=5, label="BayesFlow")
+    ax.set_xlabel("Nominal credible level")
+    ax.set_ylabel("Empirical coverage")
+    ax.set_title("Credible Interval Coverage")
+    ax.legend(fontsize=10, loc="lower right", framealpha=0.7, edgecolor="gray")
+    ax.grid(True, alpha=0.3)
     fig.tight_layout()
-    fig.savefig(os.path.join(PLOTS_DIR, "zscore_coverage.png"), dpi=150)
+    fig.savefig(os.path.join(PLOTS_DIR, "zscore_coverage.png"), dpi=180)
     plt.close(fig)
 
     # ------------------------------------------------------------------
@@ -511,6 +485,37 @@ def main() -> None:
     fig.tight_layout()
     fig.savefig(os.path.join(PLOTS_DIR, "contraction.png"), dpi=150)
     plt.close(fig)
+
+    # Also save individual sequence plots for slides (with legends)
+    for ex in [0, 2]:  # sequences used on slide 11
+        seq = test_seqs[ex]
+        true_vals = np.asarray(test_posts[ex])
+        samples = bf_samples[ex]
+        length = len(true_vals)
+        positions = np.arange(length)
+
+        pred_median = np.array([np.nanmedian(samples[:, pos]) for pos in range(length)])
+        pred_lo = np.array([np.nanpercentile(samples[:, pos], 5) for pos in range(length)])
+        pred_hi = np.array([np.nanpercentile(samples[:, pos], 95) for pos in range(length)])
+
+        fig, ax = plt.subplots(1, 1, figsize=(8, 3.5))
+        ax.plot(positions, true_vals, "o-", color="k", markersize=5, linewidth=1.8,
+                label="True $P(\\alpha)$ (FB)")
+        ax.fill_between(positions, pred_lo, pred_hi, alpha=0.25, color="tab:blue",
+                        label="BayesFlow 90\\% CI")
+        ax.plot(positions, pred_median, "s-", color="tab:blue", markersize=4,
+                linewidth=1.5, label="BayesFlow median")
+        ax.plot(positions, bilstm_point[ex], "x--", color="tab:red", markersize=4,
+                linewidth=1.5, label="BiLSTM point")
+        ax.set_xlabel("Position")
+        ax.set_ylabel("$P(\\alpha)$")
+        ax.set_title(f"Sequence {ex} (length={length}) — Posterior Contraction")
+        ax.legend(fontsize=9, loc="upper left", framealpha=0.8, edgecolor="gray")
+        ax.set_ylim(-0.05, 1.15)
+        ax.grid(True, alpha=0.2)
+        fig.tight_layout()
+        fig.savefig(os.path.join(PLOTS_DIR, f"contraction_seq{ex}.png"), dpi=180)
+        plt.close(fig)
 
     # ------------------------------------------------------------------
     # Summary statistics
