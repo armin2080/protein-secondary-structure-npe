@@ -272,7 +272,7 @@ signal would destabilize training.
 
 \section{Training}
 
-We generated 800 training and 200 validation sequences. The BiLSTM was pretrained for
+We generated 2000 training and 400 validation sequences. The BiLSTM was pretrained for
 up to 60 epochs using AdamW ($\text{lr}=10^{-3}$, weight decay $10^{-4}$), gradient
 clipping at~1.0, and \texttt{ReduceLROnPlateau} scheduling with early stopping
 (patience~8). A hyperparameter search over 6 configurations varying optimizer choice,
