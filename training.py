@@ -669,9 +669,9 @@ def plot_hyperparameter_search(results: pd.DataFrame, out_path: str) -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    fig, ax = plt.subplots(figsize=(7, 4))
+    fig, ax = plt.subplots(figsize=(6, 4))
     ax.bar(results["name"], results["masked_mae"], color="#4C72B0")
-    ax.set_ylabel("masked MAE vs. true Forward-Backward (real positions)")
+    ax.set_ylabel("masked MAE vs. true Forward-Backward")
     ax.set_title("Coupling-flow hyperparameter search (lower is better)")
     ax.tick_params(axis="x", rotation=30)
     ax.grid(axis="y", alpha=0.3)
