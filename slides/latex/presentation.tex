@@ -684,9 +684,9 @@ diagnostics code, not in this data layer. Also mention you prepared the human in
 % ===== LEFT =====
 \begin{column}{0.49\textwidth}
 {\fontsize{7.5}{8.5}\selectfont\textbf{\textcolor{darkgreen}{Stage-1 pretraining loss}}}\\[3pt]
-\begin{center}
+\raggedright
 \includegraphics[width=\linewidth,height=0.46\textheight,keepaspectratio]{pretrain_loss.png}
-\end{center}
+
 \vspace{-0.10cm}
 {\fontsize{6.0}{7.2}\selectfont\textcolor{gray}{AdamW, grad-clip 1.0, early stopping (patience 8).}}
 \end{column}
@@ -694,9 +694,9 @@ diagnostics code, not in this data layer. Also mention you prepared the human in
 % ===== RIGHT =====
 \begin{column}{0.49\textwidth}
 {\fontsize{7.5}{8.5}\selectfont\textbf{\textcolor{darkgreen}{CouplingFlow hyperparameter search}}}\\[3pt]
-\begin{center}
+\raggedright
 \includegraphics[width=\linewidth,height=0.46\textheight,keepaspectratio]{hyperparameter_search.png}
-\end{center}
+
 \vspace{-0.10cm}
 {\fontsize{6.0}{7.2}\selectfont\textcolor{gray}{6 configs, ranked by masked MAE \textemdash{} not flow loss $\to$ depth 10.}}
 \end{column}
