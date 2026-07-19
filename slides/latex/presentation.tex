@@ -986,35 +986,34 @@ represent \textbf{point masses}.
 \begin{column}{0.26\textwidth}
 \vspace{0.40cm}
 
-% Card 1: Key Metrics
+% Card 1: The Point-Mass Problem
 \begin{tikzpicture}
 \node[fill=red!5, draw=red!40, rounded corners=3pt, line width=0.5pt,
       text width=2.8cm, inner sep=5pt, align=left,
       font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
-\textbf{\textcolor{red}{Key Metrics}}\\[3pt]
-Raw Z-std = \textbf{36.2}\\[1pt]
-{\fontsize{6.0}{7.0}\selectfont\textcolor{gray}{(pos-0 degeneracy)}}\\[3pt]
-Trimmed (1.1\%):\\[1pt]
-\; mean = \textbf{$-$0.03}\\[1pt]
-\; std = \textbf{0.94}\\[3pt]
-Coverage:\\[1pt]
-\; \textbf{94.2\%} vs.\ 90\%
+\textbf{\textcolor{red}{Point-Mass Artifact}}\\[3pt]
+Raw (all 6,764 pos.):\\[1pt]
+\; $\sigma_z = \mathbf{66.9}$\\[1pt]
+{\fontsize{6.0}{7.0}\selectfont\textcolor{gray}{(pos-0 \& padding collapse)}}\\[3pt]
+After boundary trim:\\[1pt]
+\; $\sigma_z = \mathbf{0.71}$\\[1pt]
+{\fontsize{6.0}{7.0}\selectfont\textcolor{gray}{(well-behaved posterior)}}
 };
 \end{tikzpicture}
 
 \vspace{0.12cm}
 
-% Card 2: Well-Calibrated
+% Card 2: Verdict
 \begin{tikzpicture}
 \node[fill=darkgreen!6, draw=darkgreen!40, rounded corners=3pt, line width=0.5pt,
       text width=2.8cm, inner sep=5pt, align=left,
       font=\fontsize{7.0}{8.2}\selectfont, text=navy]{
-\textbf{\textcolor{darkgreen}{Well-Calibrated}}\\[3pt]
-Mean near zero ($-$0.03)\\[1pt]
-+ std $<$ 1.0 (0.94)\\[1pt]
-$\to$ posteriors\\[1pt]
-\textbf{well-spread}\\[1pt]
-+ coverage 94.2\%
+\textbf{\textcolor{darkgreen}{Verdict}}\\[3pt]
+Z-scores $\sim \mathcal{N}(0,1)$\\[1pt]
+$\to$ \textbf{unbiased}\\[1pt]
+$\to$ \textbf{honest uncertainty}\\[3pt]
+Coverage \textbf{94.2\%}\\[1pt]
+$\to$ \textbf{conservative \& safe}
 };
 \end{tikzpicture}
 

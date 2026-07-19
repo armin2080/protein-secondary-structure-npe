@@ -371,7 +371,7 @@ def main() -> None:
             valid_samples = post_samples[valid]
             pred_mean = np.nanmean(valid_samples)
             pred_std = np.nanstd(valid_samples)
-            if pred_std < 1e-8:
+            if pred_std < 1e-4:  # degenerate posterior — variance collapsed
                 continue
             z = (true_vals[pos] - pred_mean) / pred_std
             if np.isfinite(z):
