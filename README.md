@@ -36,7 +36,7 @@ The result: a neural posterior estimator that achieves $r = 0.855$ on insulin Ch
 | **Insulin Chain B** | $r = 0.855$ | Strong generalization to real protein |
 | **Insulin Chain A** | $r = 0.428$ | Reveals HMM prior-data conflict (short helices) |
 
-See [`slides/pdf/presentation.pdf`](slides/pdf/presentation.pdf) for the full presentation with all diagnostic plots.
+See the [master guide](master_guide.md) for the full methodology and interpretation of all diagnostics.
 
 ---
 
@@ -183,8 +183,7 @@ python check_training_pipeline.py   # End-to-end pipeline test
 ├── validate_insulin.py    # Insulin inference + plots
 ├── checkpoints/           # Trained model weights
 ├── plots/                 # All diagnostic plots (PNG)
-├── slides/                # Presentation (LaTeX + PDF)
-├── dataset/               # Training + test + insulin data
+├── dataset/               # Training + test + insulin data (gitignored)
 └── master_guide.md        # Full methodology walkthrough
 ```
 

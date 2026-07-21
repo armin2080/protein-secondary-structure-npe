@@ -228,3 +228,24 @@ dataset/
 
 _check_training_pipeline_artifacts/
 .DS_Store
+
+# Project slides (kept locally, not public)
+slides/
+
+# LaTeX build artifacts
+*.aux
+*.nav
+*.snm
+*.toc
+*.out
+*.bbl
+*.bcf
+*.blg
+*.run.xml
+
+# macOS
+__MACOSX/
+
+# Temp scripts
+_check_*.py
+test.tex
