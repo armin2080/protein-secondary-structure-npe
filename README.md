@@ -198,12 +198,6 @@ python check_training_pipeline.py   # End-to-end pipeline test
 
 ---
 
-## Team
-
-This project was developed collaboratively by a four-person team covering simulation, architecture, optimization, and diagnostics. All slides and the master guide were prepared jointly.
-
----
-
 ## License
 
 MIT — see [LICENSE](LICENSE) for details.
