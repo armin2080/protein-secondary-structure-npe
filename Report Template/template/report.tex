@@ -386,6 +386,7 @@ Given a fixed set of HMM parameters, (\ref{eq:gamma}) becomes a deterministic fu
 The HMM is intentionally constrained to be simple. The $\beta$-sheets and random coils are collapsed into one state, emission probabilities are not position-dependent, and the transition and emission probabilities are set to be constant values. The starting state being the deterministic other state ensures that the exact zero probability for $\alpha$ exists at the beginning of each sequence. Lastly, the target labels used in insulin sequences were generated through the experimental structures annotation and hence represent hard-labels, while simulated targets represent soft-HMM posteriors.
 
 \section{Approximator}
+\label{sec:approx}
 
 \subsection{Architecture overview}
 
@@ -435,26 +436,85 @@ CouplingFlow's base distribution is an unconstrained Gaussian, and a second $[0,
 signal would destabilize training.
 
 
-\section{Training}
+\section{Training and Diagnostics}
+\label{sec:training}
 
-We generated 2000 training and 400 validation sequences. The BiLSTM was pretrained for
-up to 60 epochs using AdamW ($\text{lr}=10^{-3}$, weight decay $10^{-4}$), gradient
-clipping at~1.0, and \texttt{ReduceLROnPlateau} scheduling with early stopping
-(patience~8). A hyperparameter search over 6 configurations varying optimizer choice,
-learning rate, coupling-flow depth, and weight decay was conducted for the CouplingFlow
-stage.
+\paragraph{Two-stage design and data regime.}
+Training is offline: a fixed set of 2000 training and 400
+validation sequences (length $10$--$60$, padded to $60$) is generated once
+and reused across every epoch. The pipeline runs in two stages: first the
+summary network (Section~\ref{sec:approx}) is pretrained to approximate the
+Forward--Backward posteriors position by position and once that is done it
+is frozen and reused purely as a feature extractor to condition the
+coupling flow. Splitting the problem this way keeps each optimisation
+target well defined: the summary network has a direct supervised signal to
+fit and by the time the flow trains, that signal is no longer shifting
+underneath it. All losses and metrics are computed on real positions only;
+padding is excluded throughout.
 
-A critical design choice is fixed global padding: all sequences are padded to exactly
-\texttt{max\_len}=60 (not per-batch maximum) because the CouplingFlow's input
-dimensionality is fixed at construction. This global width must be used consistently
-during training, validation, and later inference on insulin.
+\paragraph{Stage 1: summary-network pretraining.}
+The network minimises a masked binary cross-entropy against the soft
+Forward--Backward targets, using AdamW (learning rate $10^{-3}$, weight
+decay $10^{-4}$), batch size $64$, gradient clipping at norm $1.0$ and a
+\texttt{ReduceLROnPlateau} schedule, training for up to $60$ epochs with
+early stopping (patience $8$). Its output forms a $124$-dimensional
+condition: a $64$-dimensional pooled summary concatenated with the $60$
+per-position logits. Both halves turn out to matter: an earlier version
+conditioned the flow on the pooled summary alone, which discarded
+positional information and performed worse than a sequence-blind baseline;
+concatenating the per-position logits back in fixed that.
 
-Model selection for the CouplingFlow is based on \textbf{masked per-position accuracy}
-(MAE and Pearson correlation on real positions only), not on the flow's raw validation
-loss. The loss is unreliable because padded targets contain $\sim$44\% exact-zero
-entries (position~0 of every sequence, plus padding beyond the sequence length), which
-a continuous density cannot represent. Configurations are ranked by masked MAE, and the
-best configuration is retrained for the final model.
+\paragraph{Stage 2: coupling-flow training and model selection.}
+With the summary network frozen, the flow is trained with AdamW (learning
+rate $5\times10^{-4}$, weight decay $10^{-3}$), batch size $64$, for $100$
+epochs. One subtlety worth flagging: the flow's objective is a negative
+log-density, so it is negative-valued and unbounded below. Roughly $44\%$
+of every padded target is exactly zero (padding, plus the deterministic
+state at position~$0$) and a continuous flow can place arbitrarily high
+density on a single point, pushing the loss toward $-\infty$. Picking the
+best configuration by this loss would just reward whichever one overfits
+the padding hardest, so instead we rank configurations by masked mean
+absolute error (MAE) against the Forward--Backward posteriors on real
+positions. A search over optimiser, learning rate, depth, and weight decay
+(six configurations) selected a coupling-flow depth of $10$
+(Figure~\ref{fig:training}).
+
+\paragraph{Convergence.}
+The Stage-1 loss plateaus around $0.46$ (Figure~\ref{fig:training})
+instead of going to zero, which looks like stalling but it isn't. For soft
+probability targets, cross-entropy is bounded below by the mean entropy of
+those targets rather than by zero. On the validation set that entropy
+floor works out to $0.4621$ and the trained network reaches $0.4623$, a
+gap of only $0.0003$. The flat curve is the loss sitting right at its
+theoretical minimum. Training and validation losses track each other
+closely throughout, so there is no sign of overfitting.
+
+\paragraph{Calibration and coverage.}
+Because the Forward--Backward posterior is a deterministic function of the
+sequence, there is no classical parameter uncertainty here. What the
+flow's spread reflects instead is uncertainty coming from the lossy
+summary condition and the checks below assess that amortised uncertainty
+specifically. On a separate held-out set of 200 test sequences (6764 real
+positions), the rank histogram comes out close to uniform (mean rank
+$0.53$, Kolmogorov--Smirnov distance $0.11$). After trimming the $1.1\%$
+of points affected by boundary-induced outliers, $z$-scores have mean
+$-0.03$ and standard deviation $0.94$ and the nominal $90\%$ credible
+intervals achieve $94.2\%$ empirical coverage. A little conservative,
+which is the safer direction to be wrong in. Most of the remaining
+deviation traces back to a boundary effect. The deterministic and padded
+exact-zero positions cannot be represented as point masses by a continuous
+flow, however well it is trained.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/pretrain_loss.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/hyperparameter_search.png}
+\caption{Left: Stage-1 pretraining loss; the plateau at $\approx 0.462$
+coincides with the entropy floor of $0.4621$, indicating
+convergence. Right: masked MAE per configuration (lower is better); the
+depth-$10$ configuration was selected.}
+\label{fig:training}
+\end{figure}
 
 
 \section{Diagnostics}
