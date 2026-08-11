@@ -499,3 +499,164 @@ def create_bayesflow_workflow() -> Any:
         inference_variables=components["inference_variables"],
         inference_conditions=components["inference_conditions"],
     )
+
+
+# --- Joint (end-to-end) training: no freeze, no torch.no_grad() -----------------
+#
+# Alternative to the frozen two-stage design above: BayesFlow calls the
+# (unfrozen) BiLSTM itself, every step, as a real bf.networks.SummaryNetwork,
+# so gradients from the flow's loss reach its weights directly. This is
+# BayesFlow's standard way to train a summary network jointly with the
+# inference network, not a workaround.
+#
+# Mechanism: under KERAS_BACKEND=torch, a Keras Layer *is* a torch.nn.Module,
+# and keras.layers.TorchModuleWrapper turns a plain torch.nn.Module into a
+# Keras layer with trainable, saveable parameters. JointSequenceSummaryNetwork
+# wraps the existing SequenceSummaryNetwork unchanged and reproduces
+# _bayesflow_condition's pooled + masked-logits output, just never under
+# torch.no_grad().
+#
+# The class is defined inside a function, like every bayesflow import in this
+# file, because keras must not be imported before KERAS_BACKEND=torch is set.
+
+_JOINT_SUMMARY_NETWORK_CLASS: Any = None
+
+
+def _get_joint_summary_network_class() -> Any:
+    """Lazily define + register ``JointSequenceSummaryNetwork``, caching the
+    class at module level so repeated calls reuse the same registered class
+    instead of re-registering a fresh class object under the same
+    ``keras.saving`` key every time.
+    """
+    global _JOINT_SUMMARY_NETWORK_CLASS
+    if _JOINT_SUMMARY_NETWORK_CLASS is not None:
+        return _JOINT_SUMMARY_NETWORK_CLASS
+
+    _configure_bayesflow_environment()
+    try:
+        import bayesflow as bf
+        import keras
+    except ImportError as exc:
+        raise ImportError(
+            "BayesFlow is not installed. Install it with "
+            "`python -m pip install \"bayesflow>=2.0\"` to build the joint summary network."
+        ) from exc
+
+    @keras.saving.register_keras_serializable(package="protein_npe")
+    class JointSequenceSummaryNetwork(bf.networks.SummaryNetwork):
+        """Non-frozen BiLSTM summary network, trained through BayesFlow's loss.
+
+        Wraps a plain ``SequenceSummaryNetwork`` in ``TorchModuleWrapper`` (makes
+        its torch params trainable Keras variables) and reproduces the frozen
+        path's pooled + masked-per-position-logits condition -- pooled alone was
+        shown worse than a sequence-blind baseline there, no reason to expect
+        otherwise here.
+
+        ``x`` arrives as float32 (``Adapter.concatenate`` upcasts int arrays), so
+        it's rounded and cast to ``long`` before the embedding lookup. Mask/lengths
+        aren't passed separately -- ``SequenceSummaryNetwork.forward`` infers both
+        from ``PAD_IDX``, avoiding the 2-D/1-D concat failure described in
+        ``create_bayesflow_adapter``.
+        """
+
+        def __init__(
+            self,
+            embedding_dim: int = 32,
+            hidden_dim: int = 64,
+            summary_dim: int = 64,
+            num_layers: int = 2,
+            dropout: float = 0.2,
+            **kwargs,
+        ) -> None:
+            super().__init__(**kwargs)
+            self.embedding_dim = embedding_dim
+            self.hidden_dim = hidden_dim
+            self.summary_dim = summary_dim
+            self.num_layers = num_layers
+            self.dropout = dropout
+            self.wrapped = keras.layers.TorchModuleWrapper(
+                SequenceSummaryNetwork(
+                    embedding_dim=embedding_dim,
+                    hidden_dim=hidden_dim,
+                    summary_dim=summary_dim,
+                    num_layers=num_layers,
+                    dropout=dropout,
+                    bidirectional=True,
+                )
+            )
+
+        def call(self, x: torch.Tensor, training: bool | None = None, **kwargs) -> torch.Tensor:
+            # fit_offline always passes an explicit training bool, but
+            # approximator.sample() calls this with none, so training is None
+            # here. TorchModuleWrapper treats anything but exactly False as
+            # "train" (dropout on); bool(None) is False, so this forces eval
+            # mode unless BayesFlow explicitly asked for training.
+            sequences = x.round().long()
+            mask = sequences != PAD_IDX
+            pooled, logits = self.wrapped(sequences, training=bool(training))
+            logits = logits * mask.to(logits.dtype)
+            return torch.cat([pooled, logits], dim=-1)
+
+        def get_config(self) -> dict[str, Any]:
+            base = super().get_config()
+            return base | {
+                "embedding_dim": self.embedding_dim,
+                "hidden_dim": self.hidden_dim,
+                "summary_dim": self.summary_dim,
+                "num_layers": self.num_layers,
+                "dropout": self.dropout,
+            }
+
+    _JOINT_SUMMARY_NETWORK_CLASS = JointSequenceSummaryNetwork
+    return _JOINT_SUMMARY_NETWORK_CLASS
+
+
+def create_joint_summary_network(
+    embedding_dim: int = 32,
+    hidden_dim: int = 64,
+    summary_dim: int = 64,
+    num_layers: int = 2,
+    dropout: float = 0.2,
+) -> Any:
+    """Build the joint (non-frozen) BiLSTM summary network.
+
+    Also registers ``JointSequenceSummaryNetwork`` with ``keras.saving`` --
+    needed before ``keras.saving.load_model`` can deserialize a saved
+    checkpoint, same as ``load_trained_pipeline`` needing ``bayesflow``
+    imported first.
+    """
+    cls = _get_joint_summary_network_class()
+    return cls(
+        embedding_dim=embedding_dim,
+        hidden_dim=hidden_dim,
+        summary_dim=summary_dim,
+        num_layers=num_layers,
+        dropout=dropout,
+    )
+
+
+def create_bayesflow_joint_adapter() -> Any:
+    """Adapter for joint training: declares ``summary_variables=["observables"]``
+    so BayesFlow calls the summary network itself, with gradients attached
+    (the frozen path's adapter declares none, since its condition is computed
+    outside BayesFlow).
+
+    Only ``observables`` is declared, not mask/lengths too -- concatenating a
+    2-D array with 1-D lengths is exactly what breaks in
+    ``create_bayesflow_adapter``'s docstring. ``SequenceSummaryNetwork.forward``
+    already infers both from ``PAD_IDX`` when omitted.
+    """
+    _configure_bayesflow_environment()
+    try:
+        import bayesflow as bf
+    except ImportError as exc:
+        raise ImportError(
+            "BayesFlow is not installed. Install it with "
+            "`python -m pip install \"bayesflow>=2.0\"` to build the adapter."
+        ) from exc
+
+    return bf.BasicWorkflow.default_adapter(
+        inference_variables=BAYESFLOW_INFERENCE_VARIABLES,
+        inference_conditions=None,
+        summary_variables=["observables"],
+    )
