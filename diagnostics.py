@@ -10,6 +10,7 @@ Produces four diagnostic plots in the ``plots/`` directory:
   4. scatter.png           — predicted vs true P(alpha) scatter with hexbin density
 """
 
+import argparse
 import os
 import sys
 
@@ -25,6 +26,7 @@ from training import (
     load_trained_pipeline,
     predict_alpha_posterior,
 )
+from joint_training import load_joint_pipeline, predict_alpha_posterior_joint
 from forward_backward import generate_dataset, load_dataset
 from simulator import get_rng
 from architecture import (
@@ -36,6 +38,7 @@ from architecture import (
 )
 
 PLOTS_DIR = "plots"
+CHECKPOINT_DIR_JOINT = "checkpoints_joint"
 
 
 def load_or_generate_test_sequences(
@@ -103,17 +106,34 @@ def _reliability_diagram(
 
 
 def main() -> None:
+    global PLOTS_DIR
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--joint", action="store_true",
+        help="Evaluate the joint (end-to-end) pipeline from checkpoints_joint/ instead of "
+             "the staged (frozen) pipeline from checkpoints/. Plots go to plots/joint/ "
+             "instead of plots/, so both runs' output coexists.",
+    )
+    args = parser.parse_args()
+    if args.joint:
+        PLOTS_DIR = os.path.join(PLOTS_DIR, "joint")  # every savefig below stays unchanged
     os.makedirs(PLOTS_DIR, exist_ok=True)
 
     # ------------------------------------------------------------------
     # 1. Load trained pipeline
     # ------------------------------------------------------------------
-    print("Loading trained pipeline ...")
+    pipeline_label = "joint (end-to-end)" if args.joint else "staged (frozen)"
+    checkpoint_dir = CHECKPOINT_DIR_JOINT if args.joint else CHECKPOINT_DIR
+    print(f"Loading trained pipeline ({pipeline_label}) from {checkpoint_dir}/ ...")
     try:
-        summary_model, approximator, manifest = load_trained_pipeline(CHECKPOINT_DIR)
+        if args.joint:
+            summary_model, approximator, manifest = load_joint_pipeline(checkpoint_dir)
+        else:
+            summary_model, approximator, manifest = load_trained_pipeline(checkpoint_dir)
         max_len = manifest["max_len"]
     except FileNotFoundError:
-        print("ERROR: No checkpoints found. Run setup_section4.py first.")
+        setup_hint = "train_joint.py" if args.joint else "setup_section4.py"
+        print(f"ERROR: No checkpoints found in {checkpoint_dir}/. Run {setup_hint} first.")
         sys.exit(1)
 
     # ------------------------------------------------------------------
@@ -126,9 +146,14 @@ def main() -> None:
     # 3. Run inference — BayesFlow
     # ------------------------------------------------------------------
     print("Running BayesFlow inference ...")
-    bf_samples = predict_alpha_posterior(
-        test_seqs, summary_model, approximator, max_len=max_len, num_samples=200, seed=0
-    )
+    if args.joint:
+        bf_samples = predict_alpha_posterior_joint(
+            test_seqs, approximator, max_len=max_len, num_samples=200, seed=0
+        )
+    else:
+        bf_samples = predict_alpha_posterior(
+            test_seqs, summary_model, approximator, max_len=max_len, num_samples=200, seed=0
+        )
     bf_point = np.array([np.nanmedian(s, axis=0) for s in bf_samples], dtype=object)
 
     # ------------------------------------------------------------------
