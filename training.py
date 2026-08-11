@@ -798,8 +798,23 @@ def predict_alpha_posterior(
         ]
     )  # (n_sequences, num_samples, max_len)
 
+    return _postprocess_alpha_samples(raw, lengths, warn_threshold, caller_name="predict_alpha_posterior")
+
+
+def _postprocess_alpha_samples(
+    raw: np.ndarray,
+    lengths: torch.Tensor,
+    warn_threshold: float,
+    caller_name: str = "predict_alpha_posterior",
+) -> list[np.ndarray]:
+    """Shared NaN/Inf/clip handling behind ``predict_alpha_posterior`` and
+    ``joint_training.predict_alpha_posterior_joint`` (see the former's
+    docstring for the full rationale). ``raw`` has shape
+    ``(n_sequences, num_samples, max_len)``.
+    """
+    num_samples = raw.shape[1]
     predictions = []
-    for i in range(len(sequences)):
+    for i in range(raw.shape[0]):
         length = int(lengths[i])
         real = raw[i, :, :length]
         nonfinite = ~np.isfinite(real)
@@ -807,7 +822,7 @@ def predict_alpha_posterior(
         bad_frac = (nonfinite | clipped_needed).mean()
         if bad_frac > warn_threshold:
             print(
-                f"WARNING predict_alpha_posterior: sequence {i} (length {length}) has "
+                f"WARNING {caller_name}: sequence {i} (length {length}) has "
                 f"{100 * nonfinite.mean():.1f}% non-finite and {100 * clipped_needed.mean():.1f}% "
                 f"out-of-[0,1]-but-finite samples out of {num_samples}. Point estimates via "
                 f"np.nanmedian are still reasonable; raw samples are not a clean posterior for "
