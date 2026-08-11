@@ -110,8 +110,11 @@ per-position posterior probability of each state — this serves as our ground t
 
 We then train a neural posterior estimator using \textit{BayesFlow} \parencite{bayesflow}
 to approximate these posteriors from amino acid sequences alone, without access to the HMM
-parameters. The trained model is validated on held-out simulated sequences and on a real
-protein: human insulin (PDB: 1A7F) \parencite{insulin}.
+parameters. We compare two training designs for the summary network that conditions
+BayesFlow: a staged design that pretrains it separately and freezes it, and a joint,
+end-to-end design that lets BayesFlow's own training signal shape it directly
+(Section~\ref{sec:joint}). The trained models are validated on held-out simulated sequences
+and on a real protein: human insulin (PDB: 1A7F) \parencite{insulin}.
 
 The report is structured as follows: Section~2 describes the simulated data and insulin
 validation set. Section~3 defines the HMM statistical model. Section~4 presents the neural
@@ -426,7 +429,8 @@ differentiated through BayesFlow's flow loss:
     \item \textbf{Stage 2 — CouplingFlow training:} The BiLSTM is frozen. For each
     sequence, we compute a fixed-size condition vector by concatenating the pooled
     summary (dim~64) with the per-position logits (padded to \texttt{max\_len}=60,
-    dim~60). The CouplingFlow (depth~6, hidden widths~128, affine transform, actnorm)
+    dim~60). The CouplingFlow (hidden widths~128, affine transform, actnorm; depth
+    chosen by the search described in Section~\ref{sec:training})
     is then trained via \texttt{BasicWorkflow.fit\_offline} on
     $\{\text{condition} \to P(\alpha \mid \text{sequence})\}$.
 \end{enumerate}
@@ -434,6 +438,20 @@ differentiated through BayesFlow's flow loss:
 Raw logits (not sigmoid probabilities) are used in the condition because the
 CouplingFlow's base distribution is an unconstrained Gaussian, and a second $[0,1]$-bounded
 signal would destabilize training.
+
+\subsection{Joint (end-to-end) alternative}
+\label{sec:joint}
+
+We also trained the alternative the two-stage design avoids: letting gradients
+from the CouplingFlow's loss reach the BiLSTM directly, with no freezing step.
+This works because BayesFlow runs on Keras 3's \texttt{torch} backend, where a
+Keras layer is a \texttt{torch.nn.Module}; wrapping the same BiLSTM in
+\texttt{keras.layers.TorchModuleWrapper} lets \texttt{BasicWorkflow} call it as
+a real summary network every step, instead of consuming a precomputed
+condition. Everything else is identical - dataset, BiLSTM architecture,
+CouplingFlow, model-selection criterion (Section~\ref{sec:training}) - and
+results are reported alongside the frozen design throughout
+Sections~\ref{sec:training}--\ref{sec:inference}.
 
 
 \section{Training and Diagnostics}
@@ -496,14 +514,15 @@ flow's spread reflects instead is uncertainty coming from the lossy
 summary condition and the checks below assess that amortised uncertainty
 specifically. On a separate held-out set of 200 test sequences (6764 real
 positions), the rank histogram comes out close to uniform (mean rank
-$0.53$, Kolmogorov--Smirnov distance $0.11$). After trimming the $1.1\%$
-of points affected by boundary-induced outliers, $z$-scores have mean
-$-0.03$ and standard deviation $0.94$ and the nominal $90\%$ credible
-intervals achieve $94.2\%$ empirical coverage. A little conservative,
-which is the safer direction to be wrong in. Most of the remaining
-deviation traces back to a boundary effect. The deterministic and padded
-exact-zero positions cannot be represented as point masses by a continuous
-flow, however well it is trained.
+$0.528$, Kolmogorov--Smirnov distance $0.110$). After trimming the small
+fraction of extreme-outlier draws ($|z|<4$; $63$ of $6564$ real-valued
+z-scores clipped), $z$-scores have mean $0.13$ and standard deviation
+$0.71$, and the nominal $90\%$ credible intervals achieve $96.1\%$
+empirical coverage. A little conservative, which is the safer direction to
+be wrong in. Most of the remaining deviation traces back to a boundary
+effect. The deterministic and padded exact-zero positions cannot be
+represented as point masses by a continuous flow, however well it is
+trained.
 
 \begin{figure}[t]
 \centering
@@ -514,6 +533,30 @@ coincides with the entropy floor of $0.4621$, indicating
 convergence. Right: masked MAE per configuration (lower is better); the
 depth-$10$ configuration was selected.}
 \label{fig:training}
+\end{figure}
+
+\paragraph{Joint training: configuration and cost.}
+The joint model reuses the same BiLSTM and CouplingFlow architectures, but
+\texttt{fit\_offline} manages a single optimizer for the whole model (one
+AdamW-with-cosine-warmup schedule), not the staged design's two
+independently-tuned ones. The hyperparameter search was trimmed to four
+configurations, since joint training pays the BiLSTM's forward/backward
+cost on every step of every trial rather than once (Stage~1 amortises it
+for the staged search). The search selected learning rate $10^{-3}$,
+weight decay $10^{-3}$, depth~$6$. On this (CPU-only) machine the final
+$100$-epoch retrain took $33.5$ minutes, versus $\sim17$ minutes for the
+whole $4$-configuration search.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/joint_loss.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/hyperparameter_search_joint.png}
+\caption{Joint pipeline. Left: the coupling flow's training/validation
+loss (there is no separate Stage-1 pretraining curve in this design).
+Right: masked MAE per configuration in the trimmed 4-configuration search
+(lower is better); the higher-learning-rate, depth-$6$ configuration was
+selected.}
+\label{fig:training_joint}
 \end{figure}
 
 
