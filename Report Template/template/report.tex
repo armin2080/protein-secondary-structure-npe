@@ -18,7 +18,7 @@
 ]{geometry}
 
 \usepackage{graphicx}
-\usepackage[headings]{fullpage}
+% \usepackage[headings]{fullpage}  % removed: it overrode geometry's 2.5cm margins
 \usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage{units}
@@ -27,6 +27,7 @@
  \usepackage{IEEEtrantools}
 \usepackage{listings} %Source code listings https://en.wikibooks.org/wiki/LaTeX/Source_Code_Listings
 \usepackage{xcolor}
+\usepackage{array}
 
 \lstset{
     language=Python, %You can always set to another language
@@ -92,35 +93,38 @@
 
 \clearpage
 
+\tableofcontents
+
+\clearpage
+
 \section{Introduction}
 
-Proteins are linear chains of amino acids that fold into complex three-dimensional structures
+Proteins are linear chains of amino acids that fold into three-dimensional structures
 determining their biological function. An intermediate level of organization is the
-\textit{secondary structure}, where each amino acid residue participates in local folding
+\textit{secondary structure}, where each residue participates in local folding
 patterns: $\alpha$-helices, $\beta$-sheets, or random coils \parencite{bioninja}.
-Predicting secondary structure from sequence alone is a fundamental problem in computational
-biology.
+Predicting secondary structure from sequence alone is a fundamental problem in
+computational biology.
 
 In this project, we formulate secondary structure prediction as a probabilistic inference
 problem. We define a two-state Hidden Markov Model (HMM) with fixed transition and emission
-probabilities derived from empirical protein data \parencite{kaggle}. The HMM's hidden states
-represent $\alpha$-helix versus ``other'' (encompassing $\beta$-sheets and coils). Given an
+probabilities from empirical protein data \parencite{kaggle}, whose hidden states represent
+$\alpha$-helix versus ``other'' ($\beta$-sheets and coils). Given an
 amino acid sequence, the Forward-Backward algorithm \parencite{jurafsky} computes the exact
-per-position posterior probability of each state — this serves as our ground truth.
+per-position posterior of each state --- our ground truth.
 
-We then train a neural posterior estimator using \textit{BayesFlow} \parencite{bayesflow}
+We then train a neural posterior estimator with \textit{BayesFlow} \parencite{bayesflow}
 to approximate these posteriors from amino acid sequences alone, without access to the HMM
-parameters. We compare two training designs for the summary network that conditions
-BayesFlow: a staged design that pretrains it separately and freezes it, and a joint,
+parameters, comparing two designs for the conditioning summary network: a staged design
+that pretrains and freezes it, and a joint,
 end-to-end design that lets BayesFlow's own training signal shape it directly
-(Section~\ref{sec:joint}). The trained models are validated on held-out simulated sequences
-and on a real protein: human insulin (PDB: 1A7F) \parencite{insulin}.
+(Section~\ref{sec:joint}). The models are validated on held-out simulated sequences
+and on a real protein, human insulin (PDB: 1A7F) \parencite{insulin}.
 
-Figure~\ref{fig:pipeline} summarises the overall workflow: an HMM simulator produces
+Figure~\ref{fig:pipeline} summarises the workflow: an HMM simulator produces
 synthetic sequences with exact Forward--Backward posteriors, a BiLSTM--CouplingFlow
 architecture amortises this posterior as a function of the sequence alone, and the trained
-model is validated against the experimental secondary-structure annotation of a real
-protein.
+model is validated against the experimental annotation of a real protein.
 
 \begin{figure}[ht]
     \centering
@@ -134,29 +138,27 @@ protein.
     \label{fig:pipeline}
 \end{figure}
 
-The rest of the report covers the data (Section~2), the HMM model (Section~3),
-the approximator (Section~4), training (Section~5), diagnostics (Section~6),
-inference results (Section~7), and conclusions (Section~8).
-
 
 \section{Data}
 
-The data layer has two purposes. First, it produces an unlimited supply of simulated amino-acid sequences combined with exact per-residue inference targets. Second, it converts a real protein structure, human insulin 1A7F, into the same sequence representation and a compatible two-state validation target.
+The data layer serves two purposes: producing an unlimited supply of simulated
+amino-acid sequences with exact per-residue inference targets, and converting
+human insulin 1A7F into the same sequence representation with a
+compatible two-state validation target.
 
 \subsection{Canonical representation}
 
-Each amino acid is represented by an integer in {0, . . . , 19} in the canonical
+Each amino acid is represented by an integer in $\{0,\ldots,19\}$ in the canonical
 order
 \begin{equation}
 (\mathrm{A,R,N,D,C,E,Q,G,H,I,L,K,M,F,P,S,T,W,Y,V}).
 \end{equation}
-For example, alanine is encoded as 0, glycine as 7, and valine as 19. The mapping,
+For example, alanine is 0, glycine 7, and valine 19. The mapping,
 inverse mapping, state labels, and all probability arrays are defined once in
 \texttt{encoding.py}; the hidden-state convention is $0=\alpha$-helix and
-$1=\text{other}$, and probability arrays are checked at import time to sum to
-one. Using the same representation for simulation and insulin parsing ensures
-the validation input is compatible with the training data; the full alphabet size
-is always 20, even for short sequences.
+$1=\text{other}$, arrays are checked at import time to sum to
+one, and the same representation is used for simulation and insulin parsing
+(alphabet size 20).
 
 \subsection{Simulated training data}
 
@@ -165,20 +167,20 @@ Section~\ref{sec:stat}, then emits one amino acid per position from the
 state's emission table, yielding the aligned sequences $s_{1:L}$ and
 $x_{1:L}$.
 
-All randomness is supplied through a NumPy \texttt{Generator}. Consequently, a fixed
-seed reproduces sequence lengths, state paths, and emitted amino acids exactly. For a
+All randomness comes from a NumPy \texttt{Generator}, so a fixed seed
+reproduces everything exactly. For a
 batch of $n$ examples, lengths are sampled independently from the discrete uniform
 distribution
 \begin{equation}
 L_i \sim \mathcal{U}\{10,11,\ldots,60\}, \qquad i=1,\ldots,n.
 \end{equation}
-This range covers both short insulin chains while retaining longer sequences that show
-several state transitions. The training script can request as many examples as required;
-in the final configuration, 2000 training and 400 validation sequences were generated,
-with independent held-out sequences for evaluation.
+covering the short insulin chains while retaining longer sequences with
+several transitions. The training script can request as many examples as
+needed; the final configuration uses 2000 training and 400 validation sequences,
+plus independent held-out sequences.
 
-The sampled state path is retained for diagnostics of the generative process, even
-though the neural target is the Forward-Backward posterior.
+The sampled state path is retained for diagnostics even though it is not
+the training target.
 
 \subsection{Exact targets and dataset handoff}
 
@@ -186,22 +188,24 @@ For every simulated observation $x_{1:L}$, exact HMM inference produces
 \begin{equation}
 y_t = P(S_t=0\mid X_{1:L}=x_{1:L}), \qquad t=1,\ldots,L,
 \end{equation}
-where state 0 denotes $\alpha$-helix. Thus one training item consists of the integer
-sequence, its per-position $\alpha$ posterior, and the sampled state path. The target is
-a probability in $[0,1]$, not a hard classification label.
+where state 0 denotes $\alpha$-helix; each training item is the integer sequence,
+its per-position $\alpha$ posterior (a probability in $[0,1]$, not a hard
+label), and the sampled state path.
 
-Since sequences have variable length, storing every example in a single padded matrix would introduce unnecessary padding. Instead, sequences are concatenated into a one-dimensional array and accompanied by a vector of sequence lengths.
+Because lengths vary, sequences are concatenated into a one-dimensional array
+with a vector of lengths, avoiding unnecessary padding.
 
-A saved .npz file contains sequences
-(integer observations), posteriors (floating-point targets), states (integer latent paths),
-and lengths. Cumulative sums of lengths allows exact reconstruction of the example sequence. The model doesn’t need object arrays and pickling; it is portable and allows the system to know how to pad and mask itself. Table~\ref{tab:data-interfaces} shows the main interfaces that are exposed to the rest of the system.
+A \texttt{.npz} file stores sequences, posteriors, states, and lengths; cumulative
+sums of lengths reconstruct each example exactly, without object arrays or
+pickling, and let the model pad and mask itself. Table~\ref{tab:data-interfaces}
+lists the main interfaces.
 
 \begin{table}[ht]
     \centering
     \caption{Data-layer modules and their interfaces.}
     \label{tab:data-interfaces}
     \footnotesize
-    \begin{tabular}{p{0.25\textwidth}|p{0.65\textwidth}}
+    \begin{tabular}{p{0.25\textwidth}|>{\raggedright\arraybackslash}p{0.65\textwidth}}
         \hline
         Module & Responsibility \\
         \hline
@@ -217,8 +221,8 @@ and lengths. Cumulative sums of lengths allows exact reconstruction of the examp
 
 \subsection{Insulin 1A7F validation data}
 
-Human insulin 1A7F is used as an out-of-simulation validation example
-\parencite{insulin}. The structure is an NMR entry containing two peptide chains. Chain A
+Human insulin 1A7F \parencite{insulin}, an NMR structure with two peptide chains,
+is used as an out-of-simulation validation example. Chain A
 has 21 residues and matches the wild-type human insulin A-chain sequence:
 \begin{center}
 \small\texttt{GIVEQCCTSICSLYQLENYCN}.
@@ -230,12 +234,11 @@ Chain B is the 29-residue mutant sequence
 Relative to the wild-type B chain, it contains the substitutions B16
 Tyr$\rightarrow$Glu and B24 Phe$\rightarrow$Gly and lacks residue B30 (des-B30).
 
-The mmCIF file was downloaded from the RCSB Protein Data Bank and parsed with
-Biopython; the first NMR model's standard residues were encoded to the simulator
-indices. Secondary-structure annotations come from the deposited
-{\_struct\_conf} records, where only class-1 (right-handed $\alpha$-helix)
-residues are labelled positive and everything else ``other''. The annotated
-ranges and class balance are shown in Table~\ref{tab:insulin-data}.
+The mmCIF file was parsed with Biopython and the first NMR model's standard
+residues encoded to the simulator indices. Annotations come from the deposited
+\texttt{struct\_\allowbreak conf} records: only class-1 (right-handed
+$\alpha$-helix)
+residues are positive, everything else ``other'' (Table~\ref{tab:insulin-data}).
 
 \begin{table}[ht]
     \centering
@@ -251,19 +254,18 @@ ranges and class balance are shown in Table~\ref{tab:insulin-data}.
     \end{tabular}
 \end{table}
 
-These experimental labels are hard values: 1 denotes an annotated $\alpha$-helical
-residue and 0 denotes other. They are not Forward--Backward posteriors and are never
-used to train the model; for file-format compatibility they occupy the dataset's
-\texttt{posteriors} field, while the HMM-style state array uses the project
-convention. The preprocessing verifies expected sequences, helix labels, and
-dataset round-trips.
+These are hard labels (1 = annotated $\alpha$-helix, 0 = other), not
+Forward--Backward posteriors, and are never used for training; for file-format
+compatibility they occupy the \texttt{posteriors} field while the
+state array uses the project convention. The preprocessing verifies
+sequences, helix labels, and dataset round-trips.
 
 \section{Statistical model}
 \label{sec:stat}
 
 \subsection{Two-state Hidden Markov Model}
 
-Define $S_t\in\{0,1\}$ to be the state of the secondary structure at position $t$, where $S_t=0$ represents an $\alpha$-helix and $S_t=1$ represents “other”. The other state includes the $\beta$-sheet and random coil secondary structures. Let $X_t\in\{0,\ldots,19\}$ represent the amino acid at that position. The assumptions underlying the model are that the process is a first-order Markov process and that observations are conditionally independent given the current state:
+Define $S_t\in\{0,1\}$ to be the state of the secondary structure at position $t$, where $S_t=0$ represents an $\alpha$-helix and $S_t=1$ represents ``other'' ($\beta$-sheets and coils). Let $X_t\in\{0,\ldots,19\}$ represent the amino acid at that position. The model assumes a first-order Markov process with observations conditionally independent given the current state:
 
 \begin{equation}
 P(s_{1:L},x_{1:L})
@@ -294,17 +296,18 @@ P(0\mid1)&P(1\mid1)
 \end{bmatrix}.
 \label{eq:transition}
 \end{equation}
-Thus an $\alpha$-helix continues with probability 0.90, while an other segment continues
-with probability 0.95. The expected run lengths are $1/(1-0.90)=10$ residues for the
-$\alpha$ state and $1/(1-0.95)=20$ residues for the other state. Solving
-$\boldsymbol{\mu}=\boldsymbol{\mu}\mathbf{A}$ gives the stationary distribution
-$\boldsymbol{\mu}=(1/3,2/3)$. The deterministic start distribution differs from this
-stationary distribution, so short sequences are initially more strongly biased toward
-the other state.
+Thus $\alpha$-helix runs last on average $10$ residues, other runs $20$,
+and the stationary distribution
+$\boldsymbol{\mu}=(1/3,2/3)$ means short sequences are initially biased toward the
+other state. Because the simulator relies on fixed empirical transition and emission
+matrices, we do not define a prior over the model parameters. However, the HMM
+possesses an explicit, proper stationary prior over the hidden states
+($\approx 33\%$ $\alpha$-helix), which encodes our prior expectations before
+seeing the sequence data.
 
-The state-conditional emission probabilities are fixed to the empirical values in
-Table~\ref{tab:emissions}. Each row is a categorical distribution over the canonical
-amino-acid order and sums to one.
+The state-conditional emission probabilities are the fixed empirical values in
+Table~\ref{tab:emissions} (each row a categorical distribution over the canonical
+order, summing to one).
 
 \begin{table}[ht]
     \centering
@@ -322,27 +325,19 @@ amino-acid order and sums to one.
     \end{tabular}
 \end{table}
 
-The emission table is intentionally simple. For example, alanine and leucine are more
-probable under the $\alpha$ state, while glycine and proline are more probable under the
-other state. However, the distributions overlap substantially; individual residues are
-not decisive, and inference must combine evidence across the full sequence with the
-persistence encoded in $\mathbf{A}$.
+The emission table is intentionally simple: alanine and leucine favour
+$\alpha$, glycine and proline ``other'', but the distributions overlap
+substantially, so individual residues are not decisive; inference must combine
+evidence across the full sequence.
 
-\subsection{Generative process}
-
-Sequence of length $L$ was generated through the following steps:
-\begin{enumerate}
-    \item Set $S_1=1$ according to the initial distribution in
-    Equation~\ref{eq:start}.
-    \item For $t=2,\ldots,L$, draw $S_t\sim\operatorname{Categorical}
-    (\mathbf{A}_{S_{t-1},:})$.
-    \item At every position, draw $X_t\sim\operatorname{Categorical}
-    (\mathbf{B}_{S_t,:})$, where $\mathbf{B}$ is the emission matrix in
-    Table~\ref{tab:emissions} divided by 100.
-\end{enumerate}
-The process produces both the observation $x_{1:L}$ and its latent path $s_{1:L}$.
-The neural approximator does not receive the path. Instead, it is trained on the exact
-posterior marginals computed from the observation alone.
+A sequence of length $L$ is generated by drawing $S_1=1$
+(Equation~\ref{eq:start}), then $S_t\sim\operatorname{Categorical}
+(\mathbf{A}_{S_{t-1},:})$ for $t=2,\ldots,L$, and emitting
+$X_t\sim\operatorname{Categorical}(\mathbf{B}_{S_t,:})$ at every position
+($\mathbf{B}$ is Table~\ref{tab:emissions} divided by 100). This yields both
+the observation $x_{1:L}$ and its latent path $s_{1:L}$; the neural
+approximator never sees the path and is trained on the exact posterior
+marginals from the observation alone.
 
 \subsection{Forward-Backward inference}
 
@@ -374,39 +369,35 @@ The smoothed posterior marginal is then
 \end{equation}
 The training target is the $\alpha$ column, $y_t=\gamma_t(0)$.
 
-This implementation uses \texttt{hmmlearn.CategoricalHMM} directly \parencite{hmmlearn}. The arrays \texttt{startprob\_}, \texttt{transmat\_}, and \texttt{emissionprob\_} are taken from the common constants, while the alphabet size is fixed at 20. No fitting is done: invoking \texttt{.fit()} function would change the parameters and no longer would correspond to the intended HMM. In a batch, variable length sequences are concatenated into a column vector and given along with their respective lengths. \texttt{predict\_proba} performs the inference independently for each sequence and provides both posterior columns, keeping column 0 as a target.
+The implementation uses \texttt{hmmlearn.CategoricalHMM} \parencite{hmmlearn}
+with the common constants in \texttt{startprob\_},
+\texttt{transmat\_}, and \texttt{emissionprob\_} (alphabet size 20) without
+fitting, which would alter the parameters; \texttt{predict\_proba} performs
+inference on batched sequences, keeping column 0 as the target.
 
-\subsection{Independent correctness check}
+\subsection{Verification}
 
 A two-residue observation checks the transition orientation and emission
 indexing. For $x=(\mathrm{G},\mathrm{A})$ (indices $(7,0)$), the
-Forward--Backward recursions give $f_2(0)=0.09\times0.05\times0.12=0.00054$
+recursions give $f_2(0)=0.09\times0.05\times0.12=0.00054$
 and $f_2(1)=0.09\times0.95\times0.06=0.00513$, hence
-$P(S_2{=}0\mid\mathrm{G,A})=\frac{0.00054}{0.00054+0.00513}=0.0952$, while
-$P(S_1{=}0\mid\mathrm{G,A})=0$ because of the deterministic start. The library
-output matches this result and an independent NumPy implementation, and six
-additional length-two and length-three sequences match as well.
-
-\subsection{Verification and reproducibility}
-
-The simulator was evaluated on 2000 independently generated sequences of length
-500 (seed 12345): the maximum empirical deviation from the specified transition
-and emission probabilities was 0.0004 and 0.0007, far below the Monte Carlo
-threshold of 0.01. Forward--Backward verification on 200 sequences confirmed
-posteriors in $[0,1]$, state probabilities summing to one, and exactly zero
-$\alpha$ posterior at position 0. Same-seed generation and save/load round-trips
-reproduced all arrays exactly; the automated test suite (Section~2--3) all passes.
+$P(S_2{=}0\mid\mathrm{G,A})=0.0952$, while
+$P(S_1{=}0\mid\mathrm{G,A})=0$ due to the deterministic start; the library
+output matches an independent NumPy implementation, as do six further short
+sequences. On 2000 length-500 sequences (seed 12345) the
+maximum empirical deviation from the specified transition and emission
+probabilities was 0.0004 and 0.0007, below the Monte Carlo threshold of 0.01;
+verification on 200 sequences confirmed posteriors in $[0,1]$, probabilities
+summing to one, and zero $\alpha$ posterior at position 0.
 
 \subsection{Interpretation and limitations}
 
 Given fixed HMM parameters, (\ref{eq:gamma}) is a deterministic function of the
-sequence. The neural network therefore amortizes the exact Forward--Backward
-computation rather than learning a parameter posterior -- this motivates the
-calibration checks in later sections. The HMM is intentionally simple: the
-$\beta$-sheets and coils are collapsed into one state, emissions are not
-position-dependent, and parameters are constant. The deterministic start state
-guarantees an exact-zero $\alpha$ posterior at position 0, and the insulin
-validation uses experimental hard labels rather than soft HMM posteriors.
+sequence: the network amortizes the exact Forward--Backward computation rather
+than learning a parameter posterior (this motivates the calibration checks
+later). The HMM is intentionally simple: $\beta$-sheets and coils share one
+state, emissions are not position-dependent, and the deterministic start
+forces an exact-zero $\alpha$ posterior at position 0.
 
 \section{Approximator}
 \label{sec:approx}
@@ -418,10 +409,9 @@ architecture consists of two components:
 
 \begin{enumerate}
     \item \textbf{Summary network:} A bidirectional LSTM (BiLSTM) that processes the
-    variable-length amino acid sequence and produces a fixed-size summary vector.
-    We use a BiLSTM rather than a permutation-invariant network because amino acid
-    sequences have a meaningful sequential order — the position of each residue
-    matters for secondary structure prediction.
+    variable-length amino acid sequence into a fixed-size summary vector; we use a
+    BiLSTM rather than a permutation-invariant network because residue order matters
+    for secondary structure prediction.
     \item \textbf{Inference network:} A \texttt{CouplingFlow} normalizing flow
     \parencite{couplingflow} that learns the conditional density of the per-position
     $\alpha$-helix posteriors given the sequence summary.
@@ -433,13 +423,12 @@ The BiLSTM architecture is
 \to \text{masked mean pooling} \to \text{Linear+ReLU} \to \text{summary}(\dim=64).
 \end{multline*}
 A separate linear \texttt{position\_head} produces per-position logits for
-direct point prediction of $P(\alpha)$. Padding token 20 is used for
-variable-length sequences, with \texttt{pack\_\allowbreak padded\_\allowbreak sequence}
-so the LSTM skips padded positions; the masked binary cross-entropy loss
-averages only over real positions. The CouplingFlow is built from affine
-coupling transforms with actnorm, with two-layer hidden subnets of width
-$128$; its depth is selected by hyperparameter search
-(Section~\ref{sec:training}).
+direct point prediction of $P(\alpha)$; padding token 20 marks variable-length
+sequences, \texttt{pack\_\allowbreak padded\_\allowbreak sequence} skips
+padded positions, and the masked binary cross-entropy loss averages over real
+positions only. The CouplingFlow uses affine coupling transforms with actnorm
+and two-layer hidden subnets of width $128$; its depth comes from
+hyperparameter search (Section~\ref{sec:training}).
 
 \subsection{Two-stage design}
 
@@ -448,21 +437,20 @@ differentiated through BayesFlow's flow loss:
 
 \begin{enumerate}
     \item \textbf{Stage 1 — BiLSTM pretraining:} The summary network is trained
-    directly on the masked BCE objective against Forward-Backward $\alpha$-helix
+    on the masked BCE objective against Forward-Backward $\alpha$-helix
     posteriors, with an auxiliary loss predicting each sequence's mean $\alpha$-helix
-    fraction. This ensures both the \texttt{position\_head} and \texttt{summary\_head}
-    are well-trained.
-    \item \textbf{Stage 2 — CouplingFlow training:} The BiLSTM is frozen. For each
-    sequence, we compute a fixed-size condition vector by concatenating the pooled
-    summary (dim~64) with the per-position logits (padded to \texttt{max\_len}=60,
-    dim~60). The CouplingFlow (hidden widths~128, affine transform, actnorm; depth
-    chosen by the search described in Section~\ref{sec:training})
-    is then trained via \texttt{BasicWorkflow.fit\_offline} on
+    fraction, so both heads are well-trained.
+    \item \textbf{Stage 2 — CouplingFlow training:} The BiLSTM is frozen and
+    each sequence is condensed into a condition vector by concatenating the pooled
+    summary (dim~64) with the per-position logits (padded to \texttt{max\_len}=60).
+    The CouplingFlow (hidden widths~128, affine transform, actnorm; depth
+    from the search in Section~\ref{sec:training})
+    is trained via \texttt{BasicWorkflow.fit\_offline} on
     $\{\text{condition} \to P(\alpha \mid \text{sequence})\}$.
 \end{enumerate}
 
-Raw logits (not sigmoid probabilities) are used in the condition because the
-CouplingFlow's base distribution is an unconstrained Gaussian, and a second $[0,1]$-bounded
+Raw logits (not sigmoid probabilities) enter the condition because the
+CouplingFlow's base distribution is an unconstrained Gaussian; a $[0,1]$-bounded
 signal would destabilize training.
 
 \subsection{Joint (end-to-end) alternative}
@@ -470,12 +458,11 @@ signal would destabilize training.
 
 We also trained the alternative the two-stage design avoids: letting gradients
 from the CouplingFlow's loss reach the BiLSTM directly, with no freezing step.
-This works because BayesFlow runs on Keras 3's \texttt{torch} backend, where a
-Keras layer is a \texttt{torch.nn.Module}; wrapping the same BiLSTM in
-\texttt{keras.layers.TorchModuleWrapper} lets \texttt{BasicWorkflow} call it as
-a real summary network every step, instead of consuming a precomputed
-condition. Everything else is identical (dataset, BiLSTM architecture,
-CouplingFlow, model-selection criterion), and results are reported alongside
+This works because BayesFlow runs on Keras 3's \texttt{torch} backend;
+wrapping the BiLSTM in \texttt{keras.\allowbreak layers.\allowbreak TorchModuleWrapper} lets
+\texttt{BasicWorkflow} call it as a real summary network every step instead
+of consuming a precomputed condition. Everything else is identical, and
+results are reported alongside
 the frozen design throughout Sections~\ref{sec:training}--\ref{sec:inference}.
 
 
@@ -486,63 +473,48 @@ the frozen design throughout Sections~\ref{sec:training}--\ref{sec:inference}.
 
 Training is offline: a fixed set of 2000 training and 400
 validation sequences (length $10$--$60$, padded to $60$) is generated once
-and reused across every epoch. The pipeline runs in two stages: first the
-summary network (Section~\ref{sec:approx}) is pretrained to approximate the
-Forward--Backward posteriors position by position, then it is frozen and
-reused purely as a feature extractor to condition the coupling flow.
-Splitting the problem this way keeps each optimisation target well defined,
-and all losses and metrics are computed on real positions only; padding is
-excluded throughout.
+and reused across every epoch. The pipeline runs in two stages: the
+summary network (Section~\ref{sec:approx}) is pretrained on the
+Forward--Backward posteriors, then frozen as a feature extractor to
+condition the coupling flow, keeping each optimisation target well defined;
+all losses and metrics use real positions only.
 
 \subsection{Stage 1: summary-network pretraining}
 
 The network minimises a masked binary cross-entropy against the soft
-Forward--Backward targets, using AdamW (learning rate $10^{-3}$, weight
-decay $10^{-4}$), batch size $64$, gradient clipping at norm $1.0$ and a
-\texttt{ReduceLROnPlateau} schedule, training for up to $60$ epochs with
-early stopping (patience $8$). Its output forms a $124$-dimensional
+Forward--Backward targets (AdamW, learning rate $10^{-3}$, weight decay
+$10^{-4}$, batch size $64$, gradient clipping at norm $1.0$,
+\texttt{ReduceLROnPlateau}, up to $60$ epochs, early stopping with patience
+$8$). Its output forms a $124$-dimensional
 condition: a $64$-dimensional pooled summary concatenated with the $60$
-per-position logits. Both halves turn out to matter: an earlier version
-conditioned the flow on the pooled summary alone, which discarded
-positional information and performed worse than a sequence-blind baseline;
-concatenating the per-position logits back in fixed that.
+per-position logits. Both halves matter: conditioning on the pooled summary
+alone discarded positional information and underperformed a sequence-blind
+baseline; concatenating the per-position logits fixed that.
 
 \subsection{Stage 2: coupling-flow training and model selection}
 
 With the summary network frozen, the flow is trained with AdamW (learning
 rate $5\times10^{-4}$, weight decay $10^{-3}$), batch size $64$, for $100$
 epochs. One subtlety: the flow's objective is a negative log-density, hence
-negative-valued and unbounded below, and roughly $44\%$ of every padded
-target is exactly zero (padding, plus the deterministic state at
+unbounded below, and roughly $44\%$ of every padded
+target is exactly zero (padding plus the deterministic start at
 position~$0$). A continuous flow can place arbitrarily high density on a
-single point, pushing this loss toward $-\infty$; selecting by it would
-reward whichever config overfits the padding hardest. We therefore rank
-configurations by masked mean absolute error (MAE) against the
-Forward--Backward posteriors on real positions. A search over optimiser,
-learning rate, depth, and weight decay (six configurations) selected a
-coupling-flow depth of $10$ (Figure~\ref{fig:training}).
+single point, so selecting by this loss rewards whichever config overfits
+the padding hardest; we therefore rank
+configurations by masked mean absolute error (MAE) on real positions. A
+search over optimiser, learning rate, depth, and weight decay (six
+configurations) selected a coupling-flow depth of $10$
+(Figure~\ref{fig:training}).
 
 \subsection{Convergence}
 
-The Stage-1 loss plateaus around $0.46$ (Figure~\ref{fig:training}) instead
-of going to zero, which is not stalling: for soft probability targets,
-cross-entropy is bounded below by the mean entropy of those targets. On the
-validation set that floor is $0.4621$ and the network reaches $0.4623$ --- a
-gap of only $0.0003$, so the flat curve sits at its theoretical minimum.
-Training and validation losses track each other closely throughout, with no
-sign of overfitting.
-
-\subsection{Calibration and coverage}
-
-Because the Forward--Backward posterior is a deterministic function of the
-sequence, there is no classical parameter uncertainty here; what the flow's
-spread reflects is uncertainty from the lossy summary condition. On a held-out
-set of 200 test sequences (6764 real positions) the rank histogram is close to
-uniform (mean rank $0.528$, Kolmogorov--Smirnov distance $0.110$) and $z$-scores
-have mean $0.13$ and standard deviation $0.71$, with $96.1\%$ empirical coverage
-at the nominal $90\%$ level --- slightly conservative, the safe direction.
-Section~\ref{sec:diag} details these checks and the boundary effect behind the
-remaining deviation.
+The Stage-1 loss plateaus around $0.46$ (Figure~\ref{fig:training}) rather
+than going to zero, which is not stalling: for soft probability targets
+cross-entropy is bounded below by their mean entropy. That
+floor is $0.4621$ on the validation set and the network reaches $0.4623$ --- a
+gap of only $0.0003$, so the flat curve sits at its theoretical minimum,
+with no sign of overfitting. Calibration and coverage are assessed on a
+held-out set in Section~\ref{sec:diag}.
 
 \begin{figure}[ht]
 \centering
@@ -557,21 +529,21 @@ depth-$10$ configuration was selected.}
 
 \subsection{Joint training: configuration and cost}
 
-The joint model reuses the same BiLSTM and CouplingFlow architectures, but
+The joint model reuses the same architectures, but
 \texttt{fit\_\allowbreak offline} manages a single optimizer for the whole
-model (one AdamW-with-cosine-warmup schedule), not the staged design's two
-independently-tuned ones. The hyperparameter search was trimmed to four
+model (one AdamW-with-cosine-warmup schedule) rather than the staged
+design's two independently-tuned ones. The search was trimmed to four
 configurations, since joint training pays the BiLSTM's forward/backward
-cost on every step of every trial rather than once (Stage~1 amortises it
-for the staged search). The search selected learning rate $10^{-3}$,
+cost on every step of every trial rather than once. It selected learning
+rate $10^{-3}$,
 weight decay $10^{-3}$, depth~$6$. On this (CPU-only) machine the final
 $100$-epoch retrain took $33.5$ minutes, versus $\sim17$ minutes for the
 whole $4$-configuration search.
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.48\linewidth]{figures/joint_loss.png}\hfill
-\includegraphics[width=0.48\linewidth]{figures/hyperparameter_search_joint.png}
+\includegraphics[height=0.16\textwidth]{figures/joint_loss.png}\hfill
+\includegraphics[height=0.16\textwidth]{figures/hyperparameter_search_joint.png}
 \caption{Joint pipeline. Left: the coupling flow's training/validation
 loss (there is no separate Stage-1 pretraining curve in this design).
 Right: masked MAE per configuration in the trimmed 4-configuration search
@@ -584,50 +556,47 @@ selected.}
 \section{Diagnostics}
 \label{sec:diag}
 
-All diagnostics below are computed on a held-out set of $200$ simulated
-sequences ($6{,}764$ real residue positions), independent of training and
-validation. The two training designs of Section~\ref{sec:training} ---
-frozen (staged) and joint (end-to-end) --- are evaluated with identical
-procedures and reported side by side. Because the Forward--Backward
+All diagnostics use a held-out set of $200$ simulated
+sequences ($6{,}764$ real positions) for both training designs of
+Section~\ref{sec:training} with identical procedures.
+Because the Forward--Backward
 posterior is a deterministic function of the sequence, there is no
-classical parameter uncertainty here; what these checks assess is the
-uncertainty that arises from the lossy summary condition, i.e.\ whether
-the flow's spread is an honest description of its own residual error.
+classical parameter uncertainty; these checks assess whether the flow's
+spread honestly describes its residual error. Because the HMM parameters are
+fixed and we evaluate the computational faithfulness of the neural posterior
+estimator against exact analytical targets, standard posterior predictive
+checks (PPCs) for model fit are not applicable.
 
 \subsection{Simulation-Based Calibration (SBC)}
 
 Standard SBC \parencite{sbc} draws parameters from the prior, simulates data, and checks
-whether posterior ranks are uniformly distributed. Our setting differs: the HMM parameters
-are fixed (not inferred), and the Forward--Backward target is a deterministic function of
-the input. We adapt SBC by computing, for each sequence position, the rank of the true
-Forward--Backward posterior value within the BayesFlow posterior samples, and testing
-uniformity of these ranks. Under perfect learning the true value is itself one draw from
-the learned posterior, so its rank among the $200$ posterior samples must be uniform on
-$\{0,1,\ldots,200\}$.
+posterior-rank uniformity. Our setting differs: the HMM parameters are fixed, so we adapt SBC by
+ranking, per position, the true Forward--Backward value within the BayesFlow posterior
+samples and testing the uniformity of those ranks. Under perfect learning the true value
+is itself a draw from the learned posterior, so its rank among the $200$ samples must be
+uniform on $\{0,1,\ldots,200\}$.
 
-Figure~\ref{fig:sbc} shows the rank histogram and the PIT ECDF for both designs. The frozen
-design achieves a mean rank of $0.528$ ($44.2\%$ of ranks below $0.5$) and a
-Kolmogorov--Smirnov (KS) distance of $0.110$; the joint design achieves a mean rank of
-$0.519$ ($45.0\%$ below $0.5$) and KS $=0.132$. Both are close to uniform, with two
-remaining deviations identical in kind across designs:
+Figure~\ref{fig:sbc} shows rank histograms and PIT ECDFs for both designs: the frozen
+design has mean rank $0.528$ ($44.2\%$ of ranks below $0.5$) and KS distance $0.110$;
+the joint design mean rank $0.519$ ($45.0\%$ below $0.5$) and KS $=0.132$. Both are
+close to uniform, with two deviations common to both designs:
 
 \begin{itemize}
-    \item \textbf{Spike in the first rank bin.} Roughly $3\%$ of test
-    positions are exact-zero targets (the deterministic start state at
-    position~$0$ of every sequence). A continuous normalizing flow cannot
-    represent a point mass: it spreads a tiny positive density around zero,
-    so all $200$ samples exceed the true value and the rank is forced to
-    exactly $0$. This is a representational artefact, not a calibration failure.
+    \item \textbf{Spike in the first rank bin.} Roughly $3\%$ of positions have
+    exact-zero targets (the deterministic start at position~$0$). A continuous
+    flow cannot represent a point mass: it spreads a
+    tiny density around zero, so all $200$ samples exceed the truth and
+    the rank is forced to $0$ --- an artefact, not a
+    calibration failure.
     \item \textbf{Mild central hump.} Ranks cluster slightly toward the
-    centre --- the signature of a mildly conservative (overdispersed)
-    posterior that hedges rather than risks being overconfident.
+    centre --- a mildly conservative (overdispersed) posterior.
 \end{itemize}
 
-Neither design is U-shaped (no overconfidence) and neither shows a strong
-directional bias. The joint design fits the Forward--Backward posterior
-markedly better point-wise (Section~\ref{sec:inference}) at a small price
-in rank uniformity (KS $0.132$ vs.\ $0.110$), reflecting slightly narrower
-posteriors at some positions.
+Neither design is U-shaped (no overconfidence) or shows strong
+directional bias; the joint design fits the posterior markedly better
+point-wise (Section~\ref{sec:inference}) at a small price in rank
+uniformity (KS $0.132$ vs.\ $0.110$), reflecting slightly narrower
+posteriors.
 
 \begin{figure}[ht]
     \centering
@@ -641,25 +610,23 @@ posteriors at some positions.
 
 \subsection{Z-score analysis and credible interval coverage}
 
-Per-position $z$-scores are computed as
-$z_t = (P_t^{\mathrm{true}} - \hat{\mu}_t)/\hat{\sigma}_t$, where
-$\hat{\mu}_t$ and $\hat{\sigma}_t$ are the posterior mean and standard
-deviation of the BayesFlow samples at position $t$. For a well-calibrated
-posterior the $z$-scores should approximately follow $\mathcal{N}(0,1)$:
-mean $0$ (unbiased) and standard deviation $1$ (honest spread).
+Per-position $z$-scores are
+$z_t = (P_t^{\mathrm{true}} - \hat{\mu}_t)/\hat{\sigma}_t$ with
+$\hat{\mu}_t,\hat{\sigma}_t$ the posterior mean and standard
+deviation at position $t$; a well-calibrated posterior gives approximately
+$\mathcal{N}(0,1)$ $z$-scores.
 
-Figure~\ref{fig:zscore} reports the results after excluding the exact-zero
-point-mass positions (200 of $6{,}764$). In the frozen design a small number of
-positions produce extreme $z$-scores ($63$ of $6{,}564$, about $1\%;$ maximum
-$|z| \approx 3137$) and are removed for display. These outliers cluster at the
-\textbf{C-terminus} of sequences ($83\%$ have normalized position $\geq 0.85$):
-at the last few residues the flow's posterior mean collapses toward $0$ even
-when the truth is high ($P(\alpha) \in [0.3, 0.8]$). The retained $z$-scores
-have mean $0.129$ and standard deviation $0.709$. The joint design is markedly
-cleaner: only $18$ such positions remain (median normalized position $0.83$),
-the maximum $|z|$ is $10.2$, and the $z$-scores have mean $0.105$ and standard
-deviation $0.761$ --- end-to-end training mitigates the C-terminal boundary
-effect.
+Figure~\ref{fig:zscore} reports results after excluding the exact-zero
+point-mass positions (200 of $6{,}764$). In the frozen design $63$ of
+$6{,}564$ positions ($\sim1\%$) have extreme $z$-scores (maximum
+$|z|\approx3137$) and are removed for display; these cluster at the
+\textbf{C-terminus} ($83\%$ at normalized position $\geq0.85$), where
+the posterior mean collapses toward $0$ even when the truth is high.
+The retained $z$-scores have mean $0.129$,
+standard deviation $0.709$. The joint design is markedly cleaner: $18$
+such positions remain (median position $0.83$), maximum
+$|z|=10.2$, mean $0.105$, standard deviation $0.761$ --- end-to-end
+training mitigates the C-terminal boundary effect.
 
 \begin{figure}[ht]
     \centering
@@ -674,17 +641,13 @@ effect.
     \label{fig:zscore}
 \end{figure}
 
-In both designs the spread of the $z$-scores is below $1$ (frozen
+In both designs the $z$-score spread is below $1$ (frozen
 $0.709$, joint $0.761$): the truth typically falls closer to the posterior
-mean than the posterior's own spread would predict --- the signature of a
-slightly overdispersed (conservative) posterior. This is fully consistent
-with the credible intervals \textbf{over-covering} at every nominal level
-(Table~\ref{tab:coverage} and lower panels of Figure~\ref{fig:zscore}). At
-a nominal $90\%$ level the frozen design reaches $96.1\%$ and the joint
-design $96.6\%$ coverage. Over-coverage is the safe direction --- the error
-bars are honest, slightly wider than necessary --- and the excess is small
-and consistent with the
-central hump in the rank histograms.
+mean than the posterior's own spread predicts --- a slightly overdispersed
+(conservative) posterior. This matches the credible
+intervals \textbf{over-covering} at every nominal level
+(Table~\ref{tab:coverage}; at $90\%$ nominal: frozen $96.1\%$, joint $96.6\%$),
+consistent with the central hump in the rank histograms.
 
 \begin{table}[ht]
     \centering
@@ -704,15 +667,14 @@ central hump in the rank histograms.
 
 \subsection{Posterior contraction}
 
-Figure~\ref{fig:contraction} shows how the BayesFlow posterior contracts
-around the true Forward--Backward values on four example sequences for each
-design. The $90\%$ credible interval (shaded blue) envelops the true values
-(black) throughout the real positions and tightens where the sequence
-strongly determines the posterior. In the frozen design the BiLSTM point
-estimate (red) tracks the truth almost perfectly, because it is trained
-directly on the same BCE objective that defines the target; in the joint
-design the BiLSTM is an internal feature extractor and its raw outputs are
-not read as point predictions.
+Figure~\ref{fig:contraction} shows the BayesFlow posterior contracting
+around the true Forward--Backward values on four example sequences per
+design: the $90\%$ credible interval (blue) envelops the truth (black)
+and tightens where the sequence strongly
+determines the posterior. In the frozen design the BiLSTM point estimate
+(red) tracks the truth almost perfectly, being trained on the same BCE
+objective that defines the target; in the joint design it is an internal
+feature extractor whose raw outputs are not read as point predictions.
 
 \begin{figure}[ht]
     \centering
@@ -754,26 +716,24 @@ output.
 \end{table}
 
 The frozen design's BiLSTM recovers the Forward--Backward posteriors almost
-perfectly ($r = 0.9997$, MAE $0.0035$), confirming that a direct network can
-learn the deterministic input--output mapping of the HMM with high
-fidelity. End-to-end training improves the BayesFlow posterior markedly:
+perfectly ($r = 0.9997$, MAE $0.0035$), confirming a direct network can
+learn the HMM's deterministic mapping.
+End-to-end training improves the BayesFlow posterior markedly:
 its median reaches MAE $0.016$ and $r = 0.987$, versus $0.057$ and $0.778$
-for the frozen design. Allowing the flow's loss to shape the summary
-network lets the encoder adapt to what the flow needs, rather than to a
-separate point-prediction objective.
+for the frozen design, because the flow's loss shapes the encoder to what
+the flow needs rather than to a separate point-prediction objective.
 
-The joint BiLSTM on its own is a poor point predictor ($r = -0.535$). This
-is expected and not a defect: in the joint design the BiLSTM is never
-trained on the supervised BCE objective and functions purely as a feature
-extractor, so its per-position outputs should not be read as probabilities.
-The BiLSTM point baseline is therefore meaningful only in the frozen
-design.
+The joint BiLSTM is a poor point predictor ($r = -0.535$), as
+expected: never trained on the supervised BCE objective, it functions
+purely as a feature extractor, so its per-position outputs should not be
+read as probabilities, and the BiLSTM baseline is meaningful only in the
+frozen design.
 
 \subsection{Insulin 1A7F validation}
 
 We evaluate both designs on human insulin by comparing the predicted
 $P(\alpha)$ to the experimental HELIX annotation. Table~\ref{tab:insulin}
-summarises per-chain results; Figure~\ref{fig:insulin} shows the
+summarises per-chain results and Figure~\ref{fig:insulin} shows the
 per-residue predictions.
 
 \begin{table}[ht]
@@ -801,29 +761,27 @@ per-residue predictions.
 \end{figure}
 
 Chain B ($34.5\%$ true helix) is predicted well by both designs, with
-correlations of $0.85$ that track the experimental annotation closely.
-Chain B's helix fraction is close to the HMM stationary distribution
+correlations of $0.85$ tracking the annotation closely; its helix
+fraction is close to the HMM stationary distribution
 ($\pi \approx 33\%$), so the prior does not conflict with the evidence.
 
 Chain A ($61.9\%$ true helix) is poorly predicted by both designs
-($r \approx 0.4$). The HMM's stationary prior of about $33\%$ helix biases
-predictions toward \emph{other}, and the emission tables do not carry
-enough information to override that prior over only 21 residues. Running
-Forward--Backward \emph{directly} on the insulin sequence yields a
-similarly low correlation on chain~A ($r \approx 0.40$ against the
-experimental labels), confirming that the limitation is intrinsic to the
-two-state HMM rather than to the neural approximator.
+($r \approx 0.4$): the stationary prior of about $33\%$ helix biases
+predictions toward \emph{other}, and the emission tables cannot override
+it over only 21 residues. Running
+Forward--Backward \emph{directly} on insulin yields a
+similarly low correlation on chain~A ($r \approx 0.40$), so the
+limitation is intrinsic to the
+two-state HMM rather than the neural approximator.
 
 The most informative comparison is across designs on insulin. Joint
 training recovers the Forward--Backward posterior almost perfectly on
 synthetic data ($r = 0.987$), yet the insulin correlations are essentially
-unchanged (chain~A $0.391$ vs.\ $0.428$; chain~B $0.854$ vs.\ $0.851$).
-Even a near-perfect posterior estimator cannot exceed what the simulator's
-assumptions allow on real proteins: the inference engine is not the
-bottleneck. This is direct empirical evidence for the \emph{model ceiling}
-interpretation of chain~A --- the gap between the two chains quantifies how
-much the HMM's structural assumptions matter for real proteins, and no
-amount of training on the flow side can close it.
+unchanged (chain~A $0.391$ vs.\ $0.428$; chain~B $0.854$ vs.\ $0.851$):
+a near-perfect posterior estimator cannot exceed what the simulator's
+assumptions allow. This is direct empirical evidence for
+the \emph{model ceiling} interpretation of chain~A --- no amount of
+flow training can close the gap between the two chains.
 
 
 \section{Discussion \& Conclusion}
@@ -831,73 +789,64 @@ amount of training on the flow side can close it.
 \subsection{What BayesFlow contributes}
 
 In the frozen design the BiLSTM point predictor is more accurate on synthetic
-data than the BayesFlow posterior median ($r = 0.9997$ vs.\ $0.778$). This is
-expected: the Forward--Backward target is a deterministic function of the input
-under fixed HMM parameters, so there is no genuine parameter uncertainty to
-recover, and a direct network learns this map more efficiently than a flow.
+data than the BayesFlow posterior median ($r = 0.9997$ vs.\ $0.778$): the
+Forward--Backward target is a deterministic function of the input, so a
+direct network learns this map more efficiently than a flow.
 Joint training lets the summary network adapt to the flow's objective, and the
-resulting posterior median reaches $r = 0.987$, nearly closing that gap.
+posterior median reaches $r = 0.987$, nearly closing that gap.
 
 BayesFlow nevertheless provides what a point predictor cannot: posterior
-samples with credible intervals (Figure~\ref{fig:contraction}), calibration
-diagnostics that show the uncertainty is trustworthy (both designs over-cover at
+samples with credible intervals (Figure~\ref{fig:contraction}), trustworthy
+calibration (both designs over-cover at
 every nominal level, Table~\ref{tab:coverage}), and an amortized framework that
-generalizes directly to settings with genuine parameter uncertainty.
+generalizes to genuine parameter-uncertainty settings.
 
-The insulin results are the strongest argument for the pipeline. Even though
-joint training recovers the Forward--Backward posterior almost perfectly on
-synthetic data, the real-protein correlations are unchanged (chain~A $\approx
-0.4$, chain~B $\approx 0.85$). The neural posterior estimator is therefore not
-the limiting factor --- the two-state HMM is.
+The insulin results are the strongest argument for the pipeline: despite a
+near-perfect synthetic posterior ($r=0.987$), the real-protein correlations
+are unchanged (chain~A $\approx 0.4$, chain~B $\approx 0.85$) --- the
+posterior estimator is not the limiting factor, the two-state HMM is.
 
 \subsection{Model limitations}
 
-The two-state HMM with fixed empirical emission tables is an oversimplified model of
-protein secondary structure. The stationary $\alpha$-helix prior of $\tfrac{1}{3}$
-systematically biases predictions, and the emission tables are not informative enough
-to reliably overcome this prior on short sequences. This is most evident on insulin
-chain~A, where the model fails regardless of whether inference is performed exactly
-(Forward-Backward) or approximately (BayesFlow/BiLSTM).
+The two-state HMM with fixed emission tables is an oversimplified model of
+protein secondary structure: the stationary $\alpha$-helix prior of $\tfrac{1}{3}$
+biases predictions and the emission tables cannot overcome it
+on short sequences, as most evident on insulin chain~A, where the model fails
+whether inference is exact or approximate.
 
 \subsection{Potential improvements}
 
-The most impactful improvement would be a richer simulator: adding a separate
+The most impactful improvement would be a richer simulator --- a separate
 $\beta$-sheet state, position-dependent emissions, or a context-aware state
-process would give a more realistic prior and is expected to close part of the
-gap on chain~A. The summary network could also benefit from a transformer
-encoder for longer sequence context. Online simulation (fresh sequences every
-batch) would eliminate any overfitting to the fixed offline dataset and could
-be combined with the joint design. Finally, validating on a panel of diverse
-proteins instead of a single insulin structure would turn the
-chain~A/chain~B contrast into a systematic assessment.
+process --- expected to close part of the chain~A gap. A transformer encoder
+could improve the summary network, online
+simulation (fresh sequences per batch) would remove overfitting to the fixed
+dataset, and validating on a panel of
+diverse proteins would make the chain~A/chain~B contrast systematic.
 
 \subsection{Reflection on own learnings}
 
-This project made the central idea of simulation-based inference concrete: a
-network can be trained to answer inference questions about a simulator without
-touching its internals, and the price is paid in calibration rather than in fit.
-The staged-vs.-joint comparison showed that training a summary network is a
-modelling choice with measurable consequences, and that a point-estimate
-baseline and a posterior estimator answer different questions. Implementing the
-diagnostics by hand forced us to understand what ``calibrated'' means and how to
-read failure modes from a rank histogram. Reproducibility --- seeded simulation,
-versioned checkpoints, and automated checks --- made every number in this report
-auditable. The insulin result was the most instructive: a perfectly trained
-inference engine cannot outperform its simulator, and honest diagnostics are the
-clearest way to expose that ceiling.
+This project made simulation-based inference concrete: a network can answer
+inference questions about a simulator without touching its internals, at a
+price paid in calibration rather than in fit. The staged-vs.-joint comparison
+showed that training a summary network is a modelling choice with measurable
+consequences, and hand-implementing the diagnostics taught us what
+``calibrated'' means. The
+insulin result was most instructive: a
+perfectly trained inference engine cannot outperform its simulator.
 
 \subsection{Conclusion}
 
-We successfully implemented a full simulation-based inference pipeline for protein
-secondary structure: HMM simulation, Forward-Backward ground-truth generation, BiLSTM
-summary network design, BayesFlow CouplingFlow training, and comprehensive calibration
-diagnostics including adapted SBC, z-score analysis, and credible interval coverage.
-Validation on both synthetic and real data reveals both the strengths of the neural
-approximator (faithful learning of the training target, well-behaved uncertainty on
+We implemented a full simulation-based inference pipeline for protein
+secondary structure --- HMM simulation, Forward-Backward ground truth, BiLSTM
+summary network, BayesFlow CouplingFlow training, and calibration
+diagnostics (adapted SBC, z-score analysis, credible interval coverage).
+Validation on synthetic and real data reveals the strengths of the neural
+approximator (faithful learning of the target, well-behaved uncertainty on
 chain~B) and the fundamental limitations of the two-state HMM as a generative model of
-real protein structure.
+real proteins.
 
-All code, check scripts, and diagnostic outputs are available in the project repository.
+All code and diagnostic outputs are available in the project repository.
 
 \printbibliography
 
