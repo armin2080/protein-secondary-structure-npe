@@ -76,9 +76,9 @@
 
         {\LARGE 
             Kiana Ebrahimi Farbod, 284599\\[10pt]
-            Student 2 name, matriculation number\\[10pt]
-            Student 3 name, matriculation number\\[10pt]
-            Student 4 name, matriculation number\\[10pt]
+            Samaneh Naghdbishi, [Matriculation number]\\[10pt]
+            Armin Maddah Asl, 268884\\[10pt]
+            Geri Lila, [Matriculation number]\\[10pt]
         } % Your names  
         
         \vfill
@@ -115,6 +115,24 @@ BayesFlow: a staged design that pretrains it separately and freezes it, and a jo
 end-to-end design that lets BayesFlow's own training signal shape it directly
 (Section~\ref{sec:joint}). The trained models are validated on held-out simulated sequences
 and on a real protein: human insulin (PDB: 1A7F) \parencite{insulin}.
+
+Figure~\ref{fig:pipeline} summarises the overall workflow: an HMM simulator produces
+synthetic sequences with exact Forward--Backward posteriors, a BiLSTM--CouplingFlow
+architecture amortises this posterior as a function of the sequence alone, and the trained
+model is validated against the experimental secondary-structure annotation of a real
+protein.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/pipeline.pdf}
+    \caption{Illustration of the pipeline. \emph{Simulation}: the two-state HMM
+    generates synthetic sequences with exact $P(\alpha)$ targets via Forward--Backward.
+    \emph{Amortized inference}: a BiLSTM summary network plus a CouplingFlow learn to
+    map a sequence directly to posterior draws of $P(\alpha)$, trained with a masked
+    error against the exact targets. \emph{Validation}: the trained model is applied to
+    human insulin 1A7F and compared with the experimental HELIX annotation.}
+    \label{fig:pipeline}
+\end{figure}
 
 The report is structured as follows: Section~2 describes the simulated data and insulin
 validation set. Section~3 defines the HMM statistical model. Section~4 presents the neural
@@ -407,13 +425,16 @@ architecture consists of two components:
     $\alpha$-helix posteriors given the sequence summary.
 \end{enumerate}
 
-The BiLSTM architecture is: $\text{Embedding}(21) \to \text{BiLSTM}(\text{dim}=64)
-\to \text{masked mean pooling} \to \text{Linear+ReLU} \to \text{summary}(\text{dim}=64)$.
+The BiLSTM architecture is: $\text{Embedding}(21 \to 32) \to \text{BiLSTM}(\text{dim}=64,
+\text{ 2 layers}, \text{dropout }0.2) \to \text{masked mean pooling} \to
+\text{Linear+ReLU} \to \text{summary}(\text{dim}=64)$.
 A separate linear \texttt{position\_head} produces per-position logits for direct
 point prediction of $P(\alpha)$. Padding token 20 is used for variable-length
 sequences; \texttt{pack\_padded\_sequence} ensures the LSTM does not waste computation
 on padded positions. The masked binary cross-entropy loss averages only over real
-(non-padded) positions.
+(non-padded) positions. The CouplingFlow is built from affine coupling transforms with
+actnorm, with two-layer hidden subnets of width $128$; its depth is selected by
+hyperparameter search (Section~\ref{sec:training}).
 
 \subsection{Two-stage design}
 
@@ -457,7 +478,8 @@ Sections~\ref{sec:training}--\ref{sec:inference}.
 \section{Training and Diagnostics}
 \label{sec:training}
 
-\paragraph{Two-stage design and data regime.}
+\subsection{Two-stage design and data regime}
+
 Training is offline: a fixed set of 2000 training and 400
 validation sequences (length $10$--$60$, padded to $60$) is generated once
 and reused across every epoch. The pipeline runs in two stages: first the
@@ -470,7 +492,8 @@ fit and by the time the flow trains, that signal is no longer shifting
 underneath it. All losses and metrics are computed on real positions only;
 padding is excluded throughout.
 
-\paragraph{Stage 1: summary-network pretraining.}
+\subsection{Stage 1: summary-network pretraining}
+
 The network minimises a masked binary cross-entropy against the soft
 Forward--Backward targets, using AdamW (learning rate $10^{-3}$, weight
 decay $10^{-4}$), batch size $64$, gradient clipping at norm $1.0$ and a
@@ -482,7 +505,8 @@ conditioned the flow on the pooled summary alone, which discarded
 positional information and performed worse than a sequence-blind baseline;
 concatenating the per-position logits back in fixed that.
 
-\paragraph{Stage 2: coupling-flow training and model selection.}
+\subsection{Stage 2: coupling-flow training and model selection}
+
 With the summary network frozen, the flow is trained with AdamW (learning
 rate $5\times10^{-4}$, weight decay $10^{-3}$), batch size $64$, for $100$
 epochs. One subtlety worth flagging: the flow's objective is a negative
@@ -497,7 +521,8 @@ positions. A search over optimiser, learning rate, depth, and weight decay
 (six configurations) selected a coupling-flow depth of $10$
 (Figure~\ref{fig:training}).
 
-\paragraph{Convergence.}
+\subsection{Convergence}
+
 The Stage-1 loss plateaus around $0.46$ (Figure~\ref{fig:training})
 instead of going to zero, which looks like stalling but it isn't. For soft
 probability targets, cross-entropy is bounded below by the mean entropy of
@@ -507,7 +532,8 @@ gap of only $0.0003$. The flat curve is the loss sitting right at its
 theoretical minimum. Training and validation losses track each other
 closely throughout, so there is no sign of overfitting.
 
-\paragraph{Calibration and coverage.}
+\subsection{Calibration and coverage}
+
 Because the Forward--Backward posterior is a deterministic function of the
 sequence, there is no classical parameter uncertainty here. What the
 flow's spread reflects instead is uncertainty coming from the lossy
@@ -524,7 +550,7 @@ effect. The deterministic and padded exact-zero positions cannot be
 represented as point masses by a continuous flow, however well it is
 trained.
 
-\begin{figure}[t]
+\begin{figure}[ht]
 \centering
 \includegraphics[width=0.48\linewidth]{figures/pretrain_loss.png}\hfill
 \includegraphics[width=0.48\linewidth]{figures/hyperparameter_search.png}
@@ -535,7 +561,8 @@ depth-$10$ configuration was selected.}
 \label{fig:training}
 \end{figure}
 
-\paragraph{Joint training: configuration and cost.}
+\subsection{Joint training: configuration and cost}
+
 The joint model reuses the same BiLSTM and CouplingFlow architectures, but
 \texttt{fit\_offline} manages a single optimizer for the whole model (one
 AdamW-with-cosine-warmup schedule), not the staged design's two
@@ -547,7 +574,7 @@ weight decay $10^{-3}$, depth~$6$. On this (CPU-only) machine the final
 $100$-epoch retrain took $33.5$ minutes, versus $\sim17$ minutes for the
 whole $4$-configuration search.
 
-\begin{figure}[t]
+\begin{figure}[ht]
 \centering
 \includegraphics[width=0.48\linewidth]{figures/joint_loss.png}\hfill
 \includegraphics[width=0.48\linewidth]{figures/hyperparameter_search_joint.png}
@@ -562,176 +589,331 @@ selected.}
 
 \section{Diagnostics}
 
+All diagnostics below are computed on a held-out set of $200$ simulated
+sequences ($6{,}764$ real residue positions), independent of training and
+validation. The two training designs of Section~\ref{sec:training} ---
+frozen (staged) and joint (end-to-end) --- are evaluated with identical
+procedures and reported side by side. Because the Forward--Backward
+posterior is a deterministic function of the sequence, there is no
+classical parameter uncertainty here; what these checks assess is the
+uncertainty that arises from the lossy summary condition, i.e.\ whether
+the flow's spread is an honest description of its own residual error.
+
 \subsection{Simulation-Based Calibration (SBC)}
 
 Standard SBC \parencite{sbc} draws parameters from the prior, simulates data, and checks
 whether posterior ranks are uniformly distributed. Our setting differs: the HMM parameters
-are fixed (not inferred), and the Forward-Backward target is a deterministic function of
+are fixed (not inferred), and the Forward--Backward target is a deterministic function of
 the input. We adapt SBC by computing, for each sequence position, the rank of the true
-Forward-Backward posterior value within the BayesFlow posterior samples, and testing
-uniformity of these ranks.
+Forward--Backward posterior value within the BayesFlow posterior samples, and testing
+uniformity of these ranks. Under perfect learning the true value is itself one draw from
+the learned posterior, so its rank among the $200$ posterior samples must be uniform on
+$\{0,1,\ldots,200\}$.
 
-Figure~\ref{fig:sbc} shows the SBC rank histogram and Probability Integral Transform (PIT)
-ECDF. The rank distribution is shifted rightward (mean~0.65, only 27\% of ranks below 0.5),
-indicating that the BayesFlow posterior \textbf{systematically underestimates} $P(\alpha)$
-relative to the Forward-Backward ground truth. This directional bias, together with the
-deviation from uniformity quantified by the Kolmogorov-Smirnov statistic, is consistent
-with the deterministic-target nature of this problem and the CouplingFlow's difficulty
-modeling exact-zero point masses at position~0 of every sequence.
+Figure~\ref{fig:sbc} shows the rank histogram and the PIT ECDF for both designs. The frozen
+design achieves a mean rank of $0.528$ ($44.2\%$ of ranks below $0.5$) and a
+Kolmogorov--Smirnov (KS) distance of $0.110$; the joint design achieves a mean rank of
+$0.519$ ($45.0\%$ below $0.5$) and KS $=0.132$. Both histograms are close to uniform, and
+the two deviations that remain are identical in kind across designs:
 
-\begin{figure}
+\begin{itemize}
+    \item \textbf{Spike in the first rank bin.} Roughly $3\%$ of test
+    positions are exact-zero targets (the deterministic start state at
+    position~$0$ of every sequence). A continuous normalizing flow cannot
+    represent a point mass: it spreads a tiny positive density around zero,
+    so all $200$ samples exceed the true value and the rank is forced to
+    exactly $0$. This is a representational artefact of the flow, not a
+    calibration failure.
+    \item \textbf{Mild central hump.} Ranks cluster slightly toward the
+    centre of the interval --- the signature of a mildly conservative
+    (overdispersed) posterior that hedges rather than risks being
+    overconfident.
+\end{itemize}
+
+Neither design is U-shaped (no overconfidence) and neither shows a strong
+directional bias. The joint design fits the Forward--Backward posterior
+markedly better point-wise (Section~\ref{sec:inference}) at a small price
+in rank uniformity (KS $0.132$ vs.\ $0.110$), reflecting slightly narrower
+posteriors at some positions.
+
+\begin{figure}[ht]
     \centering
-    \includegraphics[width=0.95\textwidth]{figures/sbc.png}
-    \caption{Adapted SBC diagnostics. Left: rank histogram (uniform if calibrated).
-    Right: PIT ECDF with KS statistic.}
+    \includegraphics[width=0.48\textwidth]{figures/sbc.png}\hfill
+    \includegraphics[width=0.48\textwidth]{figures/sbc_joint.png}
+    \caption{Adapted SBC diagnostics, frozen (left) and joint (right)
+    designs. Each panel shows the rank histogram (left, dashed line = uniform
+    expectation) and the PIT ECDF with KS statistic (right).}
     \label{fig:sbc}
 \end{figure}
 
 \subsection{Z-score analysis and credible interval coverage}
 
-Per-position z-scores are computed as $z_t = (P_t^{\text{true}} - \hat{\mu}_t) /
-\hat{\sigma}_t$, where $\hat{\mu}_t$ and $\hat{\sigma}_t$ are the posterior mean and
-standard deviation from BayesFlow samples. For a well-calibrated posterior, z-scores
-should approximately follow $\mathcal{N}(0,1)$.
+Per-position $z$-scores are computed as
+$z_t = (P_t^{\mathrm{true}} - \hat{\mu}_t)/\hat{\sigma}_t$, where
+$\hat{\mu}_t$ and $\hat{\sigma}_t$ are the posterior mean and standard
+deviation of the BayesFlow samples at position $t$. For a well-calibrated
+posterior the $z$-scores should approximately follow $\mathcal{N}(0,1)$:
+mean $0$ (unbiased) and standard deviation $1$ (honest spread).
 
-Figure~\ref{fig:zscore} shows the z-score distribution diagnostic. After trimming extreme
-outliers (1.1\% of positions retain $|z|<10$), z-scores have mean~0.63 and std~1.27,
-indicating a \textbf{systematic positive bias}: the posterior mean underestimates the true
-$P(\alpha)$. The credible interval coverage panel (bottom right) shows empirical coverage
-\textbf{slightly below} the nominal level at all tested intervals (e.g., 87.3\% vs.\ 90\%
-nominal), indicating mild undercoverage rather than conservatism. The combination of
-overdispersed z-scores with undercoverage reflects posterior distributions that are
-simultaneously too wide in spread but biased in location, so their credible intervals
-miss the true value more often than the nominal rate.
+Figure~\ref{fig:zscore} reports the results after excluding the exact-zero
+point-mass positions (200 of $6{,}764$). In the frozen design a small
+number of positions produce extreme $z$-scores ($63$ of $6{,}564$, about
+$1\%$; maximum $|z| \approx 3137$) and are removed for display. Inspection
+shows these outliers cluster at the \textbf{C-terminus} of sequences
+($83\%$ have normalized position $\geq 0.85$): at the last few residues the
+flow's posterior mean collapses toward $0$ even when the Forward--Backward
+truth is high ($P(\alpha)$ in the range $0.3$--$0.8$), so the posterior
+systematically underestimates the true value there. The retained
+$z$-scores have mean $0.129$ and standard deviation $0.709$. The joint
+design is markedly cleaner: only $18$ such positions remain (median
+normalized position $0.83$), the maximum $|z|$ is $10.2$, and the
+$z$-scores have mean $0.105$ and standard deviation $0.761$. End-to-end
+training therefore mitigates the C-terminal boundary effect --- the flow
+no longer collapses into the extreme underestimation seen in the frozen
+design.
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
-    \includegraphics[width=0.95\textwidth]{figures/zscore_coverage.png}
-    \caption{Z-score diagnostics. Top left: histogram vs.\ $\mathcal{N}(0,1)$.
-    Top right: QQ-plot. Bottom left: z-score vs.\ true $P(\alpha)$.
-    Bottom right: empirical vs.\ nominal credible interval coverage.}
+    \includegraphics[width=0.48\textwidth]{figures/zscore_distribution.png}\hfill
+    \includegraphics[width=0.48\textwidth]{figures/zscore_distribution_joint.png}\\[2pt]
+    \includegraphics[width=0.48\textwidth]{figures/zscore_coverage.png}\hfill
+    \includegraphics[width=0.48\textwidth]{figures/zscore_coverage_joint.png}
+    \caption{Z-score calibration diagnostics. Top row: $z$-score distribution
+    (histogram vs.\ $\mathcal{N}(0,1)$, dashed), frozen (left) and joint
+    (right). Bottom row: empirical vs.\ nominal credible-interval coverage,
+    frozen (left) and joint (right).}
     \label{fig:zscore}
 \end{figure}
 
+In both designs the spread of the $z$-scores is below $1$ (frozen
+$0.709$, joint $0.761$): the truth typically falls closer to the posterior
+mean than the posterior's own spread would predict --- the signature of a
+slightly overdispersed (conservative) posterior. This is fully consistent
+with the credible intervals \textbf{over-covering} at every nominal level
+(Table~\ref{tab:coverage} and lower panels of Figure~\ref{fig:zscore}). At
+a nominal $90\%$ level the frozen design reaches $96.1\%$ and the joint
+design $96.6\%$ coverage. Over-coverage is the safe direction --- the error
+bars are honest, slightly wider than necessary --- and the excess is small
+and consistent with the
+central hump in the rank histograms.
+
+\begin{table}[ht]
+    \centering
+    \caption{Empirical credible-interval coverage vs.\ nominal level.}
+    \label{tab:coverage}
+    \begin{tabular}{c|cc}
+        \hline
+        Nominal & Frozen & Joint \\
+        \hline
+        50\% & 66.8\% & 72.2\% \\
+        80\% & 91.3\% & 92.8\% \\
+        90\% & 96.1\% & 96.6\% \\
+        95\% & 98.1\% & 98.2\% \\
+        \hline
+    \end{tabular}
+\end{table}
+
 \subsection{Posterior contraction}
 
-Figure~\ref{fig:contraction} illustrates how the BayesFlow posterior contracts around
-the true Forward-Backward values on four example sequences. The 90\% credible interval
-(shaded blue) typically envelops the true values (black), while the BiLSTM point estimate
-(red) tracks them almost perfectly. The BiLSTM's superior accuracy is expected: it is
-trained directly on the same BCE objective that defines the target, whereas the
-CouplingFlow must model a full conditional density.
+Figure~\ref{fig:contraction} shows how the BayesFlow posterior contracts
+around the true Forward--Backward values on four example sequences for each
+design. The $90\%$ credible interval (shaded blue) envelops the true values
+(black) throughout the real positions and tightens where the sequence
+strongly determines the posterior. In the frozen design the BiLSTM point
+estimate (red) tracks the truth almost perfectly, because it is trained
+directly on the same BCE objective that defines the target; in the joint
+design the BiLSTM is an internal feature extractor and its raw outputs are
+not read as point predictions.
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
-    \includegraphics[width=0.95\textwidth]{figures/contraction.png}
-    \caption{Per-sequence posterior contraction. Black: true $P(\alpha)$. Blue band:
-    BayesFlow 90\% credible interval. Blue squares: BayesFlow median. Red crosses:
-    BiLSTM point estimate.}
+    \includegraphics[width=0.48\textwidth]{figures/contraction.png}\hfill
+    \includegraphics[width=0.48\textwidth]{figures/contraction_joint.png}
+    \caption{Posterior contraction on example sequences, frozen (left) and
+    joint (right). Black: true $P(\alpha)$. Blue band: BayesFlow 90\%
+    credible interval. Blue squares: BayesFlow median. Red crosses: BiLSTM
+    point estimate.}
     \label{fig:contraction}
 \end{figure}
 
 
 \section{Inference}
+\label{sec:inference}
 
 \subsection{Synthetic held-out evaluation}
 
-Table~\ref{tab:synthetic} reports performance on 200 held-out simulated sequences
-(6,764 total residue positions). We compare the BayesFlow point estimate (posterior
-median) against the BiLSTM's direct sigmoid output, using the exact Forward-Backward
-posterior as ground truth.
+Table~\ref{tab:synthetic} reports performance on the $200$ held-out
+simulated sequences ($6{,}764$ residue positions), using the exact
+Forward--Backward posterior as ground truth. For BayesFlow the point
+estimate is the posterior median; for the BiLSTM it is the direct sigmoid
+output.
 
-\begin{table}
+\begin{table}[ht]
     \centering
-    \caption{Performance on held-out simulated data.}
+    \caption{Performance on held-out simulated data (frozen vs.\ joint design).}
     \label{tab:synthetic}
-    \begin{tabular}{l|c|c}
+    \begin{tabular}{l|c|c|c}
         \hline
-        Metric & BayesFlow & BiLSTM \\
+        Model & Design & MAE & $r$ \\
         \hline
-        MAE & 0.115 & \textbf{0.021} \\
-        Pearson correlation & 0.560 & \textbf{0.988} \\
+        BayesFlow (median) & Frozen & 0.057 & 0.778 \\
+        BayesFlow (median) & Joint & \textbf{0.016} & \textbf{0.987} \\
+        BiLSTM (point) & Frozen & \textbf{0.0035} & \textbf{0.9997} \\
+        BiLSTM (point) & Joint & 0.300 & $-0.535$ \\
         \hline
     \end{tabular}
 \end{table}
 
-The BiLSTM near-perfectly recovers the Forward-Backward posteriors ($r=0.99$), confirming
-that a direct neural network can learn the deterministic input–output mapping of the HMM
-with high fidelity. The BayesFlow posterior median achieves lower but reasonable accuracy
-($r=0.56$), consistent with its role as a density estimator rather than a point predictor.
+The frozen design's BiLSTM recovers the Forward--Backward posteriors almost
+perfectly ($r = 0.9997$, MAE $0.0035$), confirming that a direct network can
+learn the deterministic input--output mapping of the HMM with high
+fidelity. End-to-end training improves the BayesFlow posterior markedly:
+its median reaches MAE $0.016$ and $r = 0.987$, versus $0.057$ and $0.778$
+for the frozen design. Allowing the flow's loss to shape the summary
+network lets the encoder adapt to what the flow needs, rather than to a
+separate point-prediction objective.
+
+The joint BiLSTM on its own is a poor point predictor ($r = -0.535$). This
+is expected and not a defect: in the joint design the BiLSTM is never
+trained on the supervised BCE objective and functions purely as a feature
+extractor, so its per-position outputs should not be read as probabilities.
+The BiLSTM point baseline is therefore meaningful only in the frozen
+design.
 
 \subsection{Insulin 1A7F validation}
 
-We evaluate both models on human insulin by comparing predicted $P(\alpha)$ to the
-experimental HELIX annotation. Table~\ref{tab:insulin} summarizes per-chain results;
-Figure~\ref{fig:insulin} shows the per-residue predictions.
+We evaluate both designs on human insulin by comparing the predicted
+$P(\alpha)$ to the experimental HELIX annotation. Table~\ref{tab:insulin}
+summarises per-chain results; Figure~\ref{fig:insulin} shows the
+per-residue predictions.
 
-\begin{table}
+\begin{table}[ht]
     \centering
-    \caption{Insulin 1A7F validation results.}
+    \caption{Insulin 1A7F validation results (BayesFlow).}
     \label{tab:insulin}
-    \begin{tabular}{l|c|c|c|c}
+    \begin{tabular}{l|c|cc|cc}
         \hline
-        Chain & True helix \% & BayesFlow corr & BiLSTM corr & BayesFlow acc. \\
+        Chain & True helix & Frozen $r$ & Frozen acc. & Joint $r$ & Joint acc. \\
         \hline
-        A (21 aa) & 61.9\% & 0.170 & 0.240 & 0.381 \\
-        B (29 aa) & 34.5\% & \textbf{0.856} & 0.836 & 0.655 \\
+        A (21 aa) & 61.9\% & 0.428 & 0.381 & 0.391 & 0.381 \\
+        B (29 aa) & 34.5\% & 0.851 & 0.724 & 0.854 & 0.793 \\
         \hline
     \end{tabular}
 \end{table}
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
-    \includegraphics[width=0.95\textwidth]{figures/insulin_predictions.png}
-    \caption{Per-residue predicted $P(\alpha\text{-helix})$ for human insulin chains A
-    and B (PDB: 1A7F). Orange shading: experimental HELIX annotation. Blue: BayesFlow.
-    Red: BiLSTM.}
+    \includegraphics[width=0.48\textwidth]{figures/insulin_predictions.png}\hfill
+    \includegraphics[width=0.48\textwidth]{figures/insulin_predictions_joint.png}
+    \caption{Per-residue predicted $P(\alpha\text{-helix})$ for human insulin
+    chains A and B (PDB: 1A7F), frozen (left) and joint (right). Orange shading:
+    experimental HELIX annotation. Blue: BayesFlow. Red: BiLSTM.}
     \label{fig:insulin}
 \end{figure}
 
-Chain B (34.5\% true helix) is predicted well by both models, with BayesFlow achieving
-the highest correlation ($r=0.86$). Chain B's helix fraction closely matches the HMM's
-stationary distribution ($\pi \approx 33\%$), so the prior does not conflict with the
-evidence.
+Chain B ($34.5\%$ true helix) is predicted well by both designs, with
+correlations of $0.85$ that track the experimental annotation closely.
+Chain B's helix fraction is close to the HMM stationary distribution
+($\pi \approx 33\%$), so the prior does not conflict with the evidence.
 
-Chain A (61.9\% true helix) is poorly predicted by both models ($r\approx 0.2$). The
-HMM's stationary prior of $\sim$33\% helix strongly biases predictions toward
-\textit{other}, and the emission tables lack sufficient discriminative information to
-override this prior over only 21 residues. Running Forward-Backward \textit{directly}
-on the insulin sequence yields similarly poor performance on chain~A ($r\approx 0.40$
-vs.\ experimental labels), confirming that this is a limitation of the two-state HMM
-model itself, not of the neural approximator.
+Chain A ($61.9\%$ true helix) is poorly predicted by both designs
+($r \approx 0.4$). The HMM's stationary prior of about $33\%$ helix biases
+predictions toward \emph{other}, and the emission tables do not carry
+enough information to override that prior over only 21 residues. Running
+Forward--Backward \emph{directly} on the insulin sequence yields a
+similarly low correlation on chain~A ($r \approx 0.40$ against the
+experimental labels), confirming that the limitation is intrinsic to the
+two-state HMM rather than to the neural approximator.
+
+The most informative comparison is across designs on insulin. Joint
+training recovers the Forward--Backward posterior almost perfectly on
+synthetic data ($r = 0.987$), yet the insulin correlations are essentially
+unchanged (chain~A $0.391$ vs.\ $0.428$; chain~B $0.854$ vs.\ $0.851$).
+Even a near-perfect posterior estimator cannot exceed what the simulator's
+assumptions allow on real proteins: the inference engine is not the
+bottleneck. This is direct empirical evidence for the \emph{model ceiling}
+interpretation of chain~A --- the gap between the two chains quantifies how
+much the HMM's structural assumptions matter for real proteins, and no
+amount of training on the flow side can close it.
 
 
 \section{Discussion \& Conclusion}
 
 \subsection{What BayesFlow contributes}
 
-The BiLSTM point-prediction network outperforms the BayesFlow posterior on raw accuracy
-($r=0.99$ vs.\ $0.56$ on synthetic data). This is expected: the Forward-Backward target
-is a deterministic function of the input under fixed HMM parameters, so there is no
-genuine parameter uncertainty for a density estimator to recover. A direct network can
-learn this map more efficiently than a normalizing flow.
+In the frozen design the BiLSTM point predictor is more accurate on
+synthetic data than the BayesFlow posterior median ($r = 0.9997$ vs.\
+$0.778$). This is expected: the Forward--Backward target is a deterministic
+function of the input under fixed HMM parameters, so there is no genuine
+parameter uncertainty for a density estimator to recover, and a direct
+network can learn this map more efficiently than a normalizing flow.
+End-to-end (joint) training changes the picture: it lets the summary
+network adapt to the flow's objective, and the resulting posterior median
+reaches $r = 0.987$ on synthetic data, almost closing the gap to the
+point-predictor ceiling.
 
 However, BayesFlow provides capabilities that a point predictor cannot:
 \begin{itemize}
     \item Posterior samples with credible intervals (Figure~\ref{fig:contraction}),
     enabling uncertainty quantification at each residue.
     \item Calibration diagnostics (SBC, z-scores, coverage plots) that assess
-    whether the model's uncertainty estimates are trustworthy.
+    whether the model's uncertainty estimates are trustworthy --- both designs
+    pass: conservative coverage at every nominal level (Table~\ref{tab:coverage}).
     \item An amortized inference framework that would directly generalize to settings
     with genuine parameter uncertainty, such as inferring the HMM parameters themselves
     from observed sequences.
 \end{itemize}
 
+The insulin results add the strongest argument for the pipeline. Even
+though joint training recovers the Forward--Backward posterior almost
+perfectly on synthetic data, the real-protein correlations are unchanged
+(chain~A $\approx 0.4$, chain~B $\approx 0.85$). The neural posterior
+estimator is therefore not the limiting factor: the two-state HMM is.
+
 \subsection{Model limitations}
 
 The two-state HMM with fixed empirical emission tables is an oversimplified model of
-protein secondary structure. The stationary $\alpha$-helix prior of $\nicefrac{1}{3}$
+protein secondary structure. The stationary $\alpha$-helix prior of $\tfrac{1}{3}$
 systematically biases predictions, and the emission tables are not informative enough
 to reliably overcome this prior on short sequences. This is most evident on insulin
 chain~A, where the model fails regardless of whether inference is performed exactly
 (Forward-Backward) or approximately (BayesFlow/BiLSTM).
+
+\subsection{Potential improvements}
+
+Several directions follow directly from the identified limitations. The most
+impactful would be a richer simulator: adding a separate $\beta$-sheet state,
+position-dependent emission probabilities, or a higher-order (context-aware)
+state process would give the model a more realistic prior over secondary
+structure and is expected to close part of the gap on chain~A. The summary
+network could also benefit from a transformer encoder, which captures longer
+range sequence context than the bidirectional LSTM. From a training
+perspective, the fixed offline dataset could be replaced by online
+simulation, generating fresh sequences every batch and eliminating any
+overfitting to a finite training set; the joint (end-to-end) design already
+removes the two-stage approximation and could be combined with online
+data. Finally, the validation set could be extended from the single insulin
+to a panel of diverse proteins with known structures, turning the
+chain~A/chain~B contrast into a more systematic assessment.
+
+\subsection{Reflection on own learnings}
+
+Working through this project made the central idea of simulation-based
+inference concrete: a neural network can be trained to answer arbitrary
+inference questions about a simulator without ever touching its internals,
+and the price is paid in calibration rather than in fit. The two-stage vs.
+joint comparison taught us that how a summary network is trained is a
+modelling choice with measurable consequences --- and that a point-estimate
+baseline and a posterior estimator are not interchangeable, each answering a
+different question. Implementing the diagnostics (SBC, $z$-scores, coverage)
+by hand rather than calling a black-box routine forced us to understand what
+``calibrated'' actually means and how to read the failure modes from a rank
+histogram. We also learned the value of rigorous reproducibility --- seeded
+simulation, versioned checkpoints, and automated correctness checks made it
+possible to audit every number that appears in this report. The insulin
+result was the most instructive: a perfectly trained inference engine cannot
+outperform its simulator, and the cleanest way to expose that ceiling is
+careful, honest diagnostics.
 
 \subsection{Conclusion}
 
