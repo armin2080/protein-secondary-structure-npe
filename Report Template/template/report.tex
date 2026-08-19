@@ -24,7 +24,7 @@
 \usepackage{units}
 \usepackage{url}
  %For aligned formulas
- \usepackage{IEEEtrantools}
+\usepackage{IEEEtrantools}
 \usepackage{listings} %Source code listings https://en.wikibooks.org/wiki/LaTeX/Source_Code_Listings
 \usepackage{xcolor}
 \usepackage{array}
@@ -476,8 +476,7 @@ validation sequences (length $10$--$60$, padded to $60$) is generated once
 and reused across every epoch. The pipeline runs in two stages: the
 summary network (Section~\ref{sec:approx}) is pretrained on the
 Forward--Backward posteriors, then frozen as a feature extractor to
-condition the coupling flow, keeping each optimisation target well defined;
-all losses and metrics use real positions only.
+condition the coupling flow; all losses and metrics use real positions only.
 
 \subsection{Stage 1: summary-network pretraining}
 
@@ -487,7 +486,7 @@ $10^{-4}$, batch size $64$, gradient clipping at norm $1.0$,
 \texttt{ReduceLROnPlateau}, up to $60$ epochs, early stopping with patience
 $8$). Its output forms a $124$-dimensional
 condition: a $64$-dimensional pooled summary concatenated with the $60$
-per-position logits. Both halves matter: conditioning on the pooled summary
+per-position logits. Conditioning on the pooled summary
 alone discarded positional information and underperformed a sequence-blind
 baseline; concatenating the per-position logits fixed that.
 
@@ -495,13 +494,12 @@ baseline; concatenating the per-position logits fixed that.
 
 With the summary network frozen, the flow is trained with AdamW (learning
 rate $5\times10^{-4}$, weight decay $10^{-3}$), batch size $64$, for $100$
-epochs. One subtlety: the flow's objective is a negative log-density, hence
-unbounded below, and roughly $44\%$ of every padded
-target is exactly zero (padding plus the deterministic start at
-position~$0$). A continuous flow can place arbitrarily high density on a
-single point, so selecting by this loss rewards whichever config overfits
-the padding hardest; we therefore rank
-configurations by masked mean absolute error (MAE) on real positions. A
+epochs. The flow's objective
+is a negative log-density and unbounded below, and roughly $44\%$ of every
+padded target is exactly zero (padding plus the deterministic start at
+position~$0$), so a continuous flow can drive the loss down just by
+overfitting the padding. Configurations are instead ranked by masked mean
+absolute error (MAE) on real positions. A
 search over optimiser, learning rate, depth, and weight decay (six
 configurations) selected a coupling-flow depth of $10$
 (Figure~\ref{fig:training}).
@@ -509,12 +507,11 @@ configurations) selected a coupling-flow depth of $10$
 \subsection{Convergence}
 
 The Stage-1 loss plateaus around $0.46$ (Figure~\ref{fig:training}) rather
-than going to zero, which is not stalling: for soft probability targets
+than going to zero, which is expected: for soft probability targets
 cross-entropy is bounded below by their mean entropy. That
 floor is $0.4621$ on the validation set and the network reaches $0.4623$ --- a
-gap of only $0.0003$, so the flat curve sits at its theoretical minimum,
-with no sign of overfitting. Calibration and coverage are assessed on a
-held-out set in Section~\ref{sec:diag}.
+gap of only $0.0003$, essentially the theoretical minimum, with no sign of
+overfitting.
 
 \begin{figure}[ht]
 \centering
@@ -531,14 +528,13 @@ depth-$10$ configuration was selected.}
 
 The joint model reuses the same architectures, but
 \texttt{fit\_\allowbreak offline} manages a single optimizer for the whole
-model (one AdamW-with-cosine-warmup schedule) rather than the staged
-design's two independently-tuned ones. The search was trimmed to four
-configurations, since joint training pays the BiLSTM's forward/backward
-cost on every step of every trial rather than once. It selected learning
-rate $10^{-3}$,
-weight decay $10^{-3}$, depth~$6$ --- each design's depth was chosen
-independently by its own search (depth $10$ scored worse for the joint
-model), so both are compared at their own best configuration. On this
+model (one AdamW-with-cosine-warmup schedule) rather than the staged design's two
+independently-tuned ones. Its hyperparameter search was also trimmed, to
+four configurations, since joint training pays the
+BiLSTM's forward/backward cost on every step of every trial instead of
+once. The search picked learning rate $10^{-3}$, weight decay $10^{-3}$,
+depth~$6$; depth $10$ scored worse here, so each design ends up compared
+at its own best depth rather than a matched one. On this
 (CPU-only) machine the final
 $100$-epoch retrain took $33.5$ minutes, versus $\sim17$ minutes for the
 whole $4$-configuration search.
