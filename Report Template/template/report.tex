@@ -236,7 +236,7 @@ Tyr$\rightarrow$Glu and B24 Phe$\rightarrow$Gly and lacks residue B30 (des-B30).
 
 The mmCIF file was parsed with Biopython and the first NMR model's standard
 residues encoded to the simulator indices. Annotations come from the deposited
-\texttt{struct\_\allowbreak conf} records: only class-1 (right-handed
+\texttt{\_struct\_\allowbreak conf} records: only class-1 (right-handed
 $\alpha$-helix)
 residues are positive, everything else ``other'' (Table~\ref{tab:insulin-data}).
 
@@ -257,7 +257,8 @@ residues are positive, everything else ``other'' (Table~\ref{tab:insulin-data}).
 These are hard labels (1 = annotated $\alpha$-helix, 0 = other), not
 Forward--Backward posteriors, and are never used for training; for file-format
 compatibility they occupy the \texttt{posteriors} field while the
-state array uses the project convention. The preprocessing verifies
+state array uses the project convention, $0=\alpha$ and $1=\text{other}$.
+The preprocessing verifies
 sequences, helix labels, and dataset round-trips.
 
 \section{Statistical model}
@@ -297,13 +298,10 @@ P(0\mid1)&P(1\mid1)
 \label{eq:transition}
 \end{equation}
 Thus $\alpha$-helix runs last on average $10$ residues, other runs $20$,
-and the stationary distribution
-$\boldsymbol{\mu}=(1/3,2/3)$ means short sequences are initially biased toward the
-other state. Because the simulator relies on fixed empirical transition and emission
-matrices, we do not define a prior over the model parameters. However, the HMM
-possesses an explicit, proper stationary prior over the hidden states
-($\approx 33\%$ $\alpha$-helix), which encodes our prior expectations before
-seeing the sequence data.
+and the stationary distribution $\boldsymbol{\mu}=(1/3,2/3)$ describes the
+long-run state proportions. It is not the initial-state prior, which is
+deterministic (Equation~\ref{eq:start}). Because the transition and emission
+matrices are fixed, no prior is placed over the model parameters.
 
 The state-conditional emission probabilities are the fixed empirical values in
 Table~\ref{tab:emissions} (each row a categorical distribution over the canonical
@@ -388,7 +386,9 @@ sequences. On 2000 length-500 sequences (seed 12345) the
 maximum empirical deviation from the specified transition and emission
 probabilities was 0.0004 and 0.0007, below the Monte Carlo threshold of 0.01;
 verification on 200 sequences confirmed posteriors in $[0,1]$, probabilities
-summing to one, and zero $\alpha$ posterior at position 0.
+summing to one, and zero $\alpha$ posterior at position 0. Fixed seeds reproduced
+lengths, observations, targets, and latent paths exactly; save/load round-trips
+were lossless, and all 45 automated tests for Sections~2--3 passed.
 
 \subsection{Interpretation and limitations}
 
