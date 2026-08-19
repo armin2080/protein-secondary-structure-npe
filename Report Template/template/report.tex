@@ -536,7 +536,10 @@ design's two independently-tuned ones. The search was trimmed to four
 configurations, since joint training pays the BiLSTM's forward/backward
 cost on every step of every trial rather than once. It selected learning
 rate $10^{-3}$,
-weight decay $10^{-3}$, depth~$6$. On this (CPU-only) machine the final
+weight decay $10^{-3}$, depth~$6$ --- each design's depth was chosen
+independently by its own search (depth $10$ scored worse for the joint
+model), so both are compared at their own best configuration. On this
+(CPU-only) machine the final
 $100$-epoch retrain took $33.5$ minutes, versus $\sim17$ minutes for the
 whole $4$-configuration search.
 
