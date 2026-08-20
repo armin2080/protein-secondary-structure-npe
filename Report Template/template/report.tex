@@ -148,17 +148,11 @@ compatible two-state validation target.
 
 \subsection{Canonical representation}
 
-Each amino acid is represented by an integer in $\{0,\ldots,19\}$ in the canonical
-order
+Every amino acid is encoded as an integer between 0 and 19 using the canonical order
 \begin{equation}
 (\mathrm{A,R,N,D,C,E,Q,G,H,I,L,K,M,F,P,S,T,W,Y,V}).
 \end{equation}
-For example, alanine is 0, glycine 7, and valine 19. The mapping,
-inverse mapping, state labels, and all probability arrays are defined once in
-\texttt{encoding.py}; the hidden-state convention is $0=\alpha$-helix and
-$1=\text{other}$, arrays are checked at import time to sum to
-one, and the same representation is used for simulation and insulin parsing
-(alphabet size 20).
+Thus, alanine would be coded 0, glycine 7, and valine 19. The encoding and decoding functions, the labels, and the probability arrays are all defined just once in \texttt{encoding.py}. The convention for the hidden states is $0=\alpha$-helix and $1=\text{other}$. The probability arrays will be verified when imported to sum to one.
 
 \subsection{Simulated training data}
 
@@ -192,13 +186,7 @@ where state 0 denotes $\alpha$-helix; each training item is the integer sequence
 its per-position $\alpha$ posterior (a probability in $[0,1]$, not a hard
 label), and the sampled state path.
 
-Because lengths vary, sequences are concatenated into a one-dimensional array
-with a vector of lengths, avoiding unnecessary padding.
-
-A \texttt{.npz} file stores sequences, posteriors, states, and lengths; cumulative
-sums of lengths reconstruct each example exactly, without object arrays or
-pickling, and let the model pad and mask itself. Table~\ref{tab:data-interfaces}
-lists the main interfaces.
+Since different sequences have different lengths, they are put together in a single row and the vector of lengths is created along with it, eliminating any padding. The \texttt{.npz}file contains sequences, posteriors, states, and lengths, while the sum of lengths recreates the example without the need for object arrays or pickling. Table ~\ref{tab:data-interfaces} lists the main interfaces.
 
 \begin{table}[ht]
     \centering
@@ -257,8 +245,7 @@ residues are positive, everything else ``other'' (Table~\ref{tab:insulin-data}).
 These are hard labels (1 = annotated $\alpha$-helix, 0 = other), not
 Forward--Backward posteriors, and are never used for training; for file-format
 compatibility they occupy the \texttt{posteriors} field while the
-state array uses the project convention, $0=\alpha$ and $1=\text{other}$.
-The preprocessing verifies
+state array uses $0=\alpha$ and $1=\text{other}$. The preprocessing verifies
 sequences, helix labels, and dataset round-trips.
 
 \section{Statistical model}
@@ -367,11 +354,7 @@ The smoothed posterior marginal is then
 \end{equation}
 The training target is the $\alpha$ column, $y_t=\gamma_t(0)$.
 
-The implementation uses \texttt{hmmlearn.CategoricalHMM} \parencite{hmmlearn}
-with the common constants in \texttt{startprob\_},
-\texttt{transmat\_}, and \texttt{emissionprob\_} (alphabet size 20) without
-fitting, which would alter the parameters; \texttt{predict\_proba} performs
-inference on batched sequences, keeping column 0 as the target.
+The code uses \texttt{hmmlearn.CategoricalHMM} \parencite{hmmlearn} with standard values for the constants \texttt{startprob\_}, \texttt{transmat\_}, and \texttt{emissionprob\_} (alphabet size 20). Fitting is not required because that would change the values of the parameters. Inference is done with \texttt{predict\_proba} on batches of sequences, with column 0 being the target.
 
 \subsection{Verification}
 
@@ -392,11 +375,7 @@ were lossless, and all 45 automated tests for Sections~2--3 passed.
 
 \subsection{Interpretation and limitations}
 
-Given fixed HMM parameters, (\ref{eq:gamma}) is a deterministic function of the
-sequence: the network amortizes the exact Forward--Backward computation rather
-than learning a parameter posterior (this motivates the calibration checks
-later). The HMM is intentionally simple: $\beta$-sheets and coils share one
-state, emissions are not position-dependent, and the deterministic start
+Equation (\ref{eq:gamma}) is now a deterministic function of the sequence with the HMM parameters remaining constant. In this way, the network amortizes the actual Forward-Backward calculation and not the parameter posterior (which is one reason why the following calibration tests are performed). The Hidden Markov Model is intentionally simple: There is only one state for the $\beta$-sheet and coil, there is independence from position in the emissions, and the deterministic start
 forces an exact-zero $\alpha$ posterior at position 0.
 
 \section{Approximator}
