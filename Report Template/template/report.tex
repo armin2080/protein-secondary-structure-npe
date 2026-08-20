@@ -556,47 +556,47 @@ selected.}
 \section{Diagnostics}
 \label{sec:diag}
 
-All diagnostics use a held-out set of $200$ simulated
-sequences ($6{,}764$ real positions) for both training designs of
-Section~\ref{sec:training} with identical procedures.
-Because the Forward--Backward
-posterior is a deterministic function of the sequence, there is no
-classical parameter uncertainty; these checks assess whether the flow's
-spread honestly describes its residual error. Because the HMM parameters are
-fixed and we evaluate the computational faithfulness of the neural posterior
-estimator against exact analytical targets, standard posterior predictive
-checks (PPCs) for model fit are not applicable.
+All diagnostics are run on a holdout sample of $200$ simulated
+sequences ($6{,}764$ actual positions) with each training scheme of
+Section~\ref{sec:training}. Since the Forward--Backward
+posterior is a deterministic mapping from the sequence, there is no classical
+uncertainty about the parameters, and these diagnostics test whether the
+dispersion in the flow correctly captures the residual error. Since the HMM
+parameters do not vary and the performance of the neural posterior estimator is
+compared against exact analytical results, posterior predictive checks (PPCs)
+are not applicable.
 
 \subsection{Simulation-Based Calibration (SBC)}
 
-Standard SBC \parencite{sbc} draws parameters from the prior, simulates data, and checks
-posterior-rank uniformity. Our setting differs: the HMM parameters are fixed, so we adapt SBC by
-ranking, per position, the true Forward--Backward value within the BayesFlow posterior
-samples and testing the uniformity of those ranks. Under perfect learning the true value
-is itself a draw from the learned posterior, so its rank among the $200$ samples must be
-uniform on $\{0,1,\ldots,200\}$.
+Standard SBC, following \textcite{sbc}, works like this: you draw parameters
+from the prior, simulate new data, and then check whether the posterior ranks
+look uniform. Our setup is a bit different: the HMM parameters are fixed. So we
+tweak SBC --- for each position we rank where the true Forward--Backward value
+falls among the BayesFlow posterior samples, and check whether those ranks
+spread out evenly. If learning is perfect, the true value looks just like
+another draw from the learned posterior, so you would expect the rank to be
+uniform from $0$ to $200$.
 
-Figure~\ref{fig:sbc} shows rank histograms and PIT ECDFs for both designs: the frozen
-design has mean rank $0.528$ ($44.2\%$ of ranks below $0.5$) and KS distance $0.110$;
-the joint design mean rank $0.519$ ($45.0\%$ below $0.5$) and KS $=0.132$. Both are
-close to uniform, with two deviations common to both designs:
+Figure~\ref{fig:sbc} shows rank histograms and PIT ECDFs for both designs. The
+frozen design gives a mean rank of $0.528$ ($44.2\%$ of ranks below $0.5$) and
+a KS distance of $0.110$; the joint design has mean rank $0.519$ ($45.0\%$
+below $0.5$) and KS $=0.132$. Both are close to uniform, with two quirks:
 
 \begin{itemize}
-    \item \textbf{Spike in the first rank bin.} Roughly $3\%$ of positions have
-    exact-zero targets (the deterministic start at position~$0$). A continuous
-    flow cannot represent a point mass: it spreads a
-    tiny density around zero, so all $200$ samples exceed the truth and
-    the rank is forced to $0$ --- an artefact, not a
-    calibration failure.
-    \item \textbf{Mild central hump.} Ranks cluster slightly toward the
-    centre --- a mildly conservative (overdispersed) posterior.
+    \item \textbf{Spike in the first rank bin.} About $3\%$ of positions have
+    exact-zero targets --- the deterministic start at position~$0$. A continuous
+    flow cannot represent a point mass: it smears a bit of density around zero,
+    so every one of the $200$ samples overshoots the truth and the rank ends up
+    at $0$. That is not a real calibration problem --- just an artefact.
+    \item \textbf{Mild central hump.} Ranks tend to pile up around the centre,
+    which points to a mildly conservative (overdispersed) posterior.
 \end{itemize}
 
-Neither design is U-shaped (no overconfidence) or shows strong
-directional bias; the joint design fits the posterior markedly better
-point-wise (Section~\ref{sec:inference}) at a small price in rank
-uniformity (KS $0.132$ vs.\ $0.110$), reflecting slightly narrower
-posteriors.
+Neither design is U-shaped (no sign of overconfident posteriors) and there is no
+big directional bias. The joint design fits the posterior markedly better
+point-wise (Section~\ref{sec:inference}) but pays slightly in rank uniformity
+(KS $0.132$ vs.\ $0.110$), which just means its posteriors are a little
+tighter.
 
 \begin{figure}[ht]
     \centering
@@ -610,23 +610,25 @@ posteriors.
 
 \subsection{Z-score analysis and credible interval coverage}
 
-Per-position $z$-scores are
-$z_t = (P_t^{\mathrm{true}} - \hat{\mu}_t)/\hat{\sigma}_t$ with
-$\hat{\mu}_t,\hat{\sigma}_t$ the posterior mean and standard
-deviation at position $t$; a well-calibrated posterior gives approximately
-$\mathcal{N}(0,1)$ $z$-scores.
+Here is how the per-position $z$-scores work: for each position $t$, the
+$z$-score is $z_t = (P_t^{\mathrm{true}} - \hat{\mu}_t)/\hat{\sigma}_t$,
+where $\hat{\mu}_t$ is the posterior mean and $\hat{\sigma}_t$ is the
+posterior standard deviation. If the posterior is well calibrated, these
+$z$-scores should look like a standard normal distribution --- centered at $0$
+with a spread of $1$.
 
-Figure~\ref{fig:zscore} reports results after excluding the exact-zero
-point-mass positions (200 of $6{,}764$). In the frozen design $63$ of
-$6{,}564$ positions ($\sim1\%$) have extreme $z$-scores (maximum
-$|z|\approx3137$) and are removed for display; these cluster at the
-\textbf{C-terminus} ($83\%$ at normalized position $\geq0.85$), where
-the posterior mean collapses toward $0$ even when the truth is high.
-The retained $z$-scores have mean $0.129$,
-standard deviation $0.709$. The joint design is markedly cleaner: $18$
-such positions remain (median position $0.83$), maximum
-$|z|=10.2$, mean $0.105$, standard deviation $0.761$ --- end-to-end
-training mitigates the C-terminal boundary effect.
+Figure~\ref{fig:zscore} drops out positions that are exact zeros, which removes
+$200$ of $6{,}764$ positions. Focusing on the frozen design, $63$ of $6{,}564$
+positions (just about $1\%$) end up with off-the-charts $z$-scores (some as
+extreme as $|z|\approx3137$), so they are left out of the plot. Most of these
+outliers --- about $83\%$ --- show up near the protein's C-terminus (normalized
+position $0.85$ or higher), which is where the posterior mean really shrinks
+toward zero, even when the actual value is big. The remaining $z$-scores have
+mean $0.129$ and standard deviation $0.709$. The joint design comes out much
+cleaner: only $18$ extreme positions are left (median position $0.83$), the
+biggest $|z|$ is $10.2$, and the mean and standard deviation are $0.089$ and
+$0.691$, respectively. Basically, end-to-end training in the joint design helps
+iron out that C-terminal issue.
 
 \begin{figure}[ht]
     \centering
@@ -641,13 +643,13 @@ training mitigates the C-terminal boundary effect.
     \label{fig:zscore}
 \end{figure}
 
-In both designs the $z$-score spread is below $1$ (frozen
-$0.709$, joint $0.761$): the truth typically falls closer to the posterior
-mean than the posterior's own spread predicts --- a slightly overdispersed
-(conservative) posterior. This matches the credible
-intervals \textbf{over-covering} at every nominal level
-(Table~\ref{tab:coverage}; at $90\%$ nominal: frozen $96.1\%$, joint $96.6\%$),
-consistent with the central hump in the rank histograms.
+In both designs the $z$-scores are less spread out than expected ($0.709$ for
+frozen, $0.691$ for joint), which means the true values tend to be even closer
+to the posterior mean than the model predicts. So the model's credible intervals
+are a bit too wide --- conservative, not risky. This lines up with the credible
+intervals covering more than their stated percentages at every level
+(Table~\ref{tab:coverage}; at $90\%$: frozen hits $96.1\%$, joint gets
+$96.6\%$), which you can also spot as a central bulge in the rank histograms.
 
 \begin{table}[ht]
     \centering
@@ -667,14 +669,15 @@ consistent with the central hump in the rank histograms.
 
 \subsection{Posterior contraction}
 
-Figure~\ref{fig:contraction} shows the BayesFlow posterior contracting
-around the true Forward--Backward values on four example sequences per
-design: the $90\%$ credible interval (blue) envelops the truth (black)
-and tightens where the sequence strongly
-determines the posterior. In the frozen design the BiLSTM point estimate
-(red) tracks the truth almost perfectly, being trained on the same BCE
-objective that defines the target; in the joint design it is an internal
-feature extractor whose raw outputs are not read as point predictions.
+Figure~\ref{fig:contraction} shows how BayesFlow's posterior closes in on the
+true Forward--Backward values for four example sequences in each design. The
+$90\%$ credible interval (in blue) wraps around the actual values (in black)
+and tightens up wherever the sequence gives strong evidence for the posterior.
+In the frozen design, the BiLSTM point estimate (in red) follows the truth
+almost exactly, since it was trained with the same BCE objective that defines
+the target. In the joint design, though, the BiLSTM serves as an internal
+feature extractor, so its raw outputs are not meant to be direct point
+predictions.
 
 \begin{figure}[ht]
     \centering
@@ -693,11 +696,11 @@ feature extractor whose raw outputs are not read as point predictions.
 
 \subsection{Synthetic held-out evaluation}
 
-Table~\ref{tab:synthetic} reports performance on the $200$ held-out
-simulated sequences ($6{,}764$ residue positions), using the exact
-Forward--Backward posterior as ground truth. For BayesFlow the point
-estimate is the posterior median; for the BiLSTM it is the direct sigmoid
-output.
+Let us look at Table~\ref{tab:synthetic} --- it shows how the models did on
+$200$ simulated test sequences, covering $6{,}764$ residue positions. For
+ground truth, we used the exact Forward--Backward posterior. BayesFlow
+predicts the median of its posterior, while the BiLSTM gives a value straight
+from its sigmoid output.
 
 \begin{table}[ht]
     \centering
@@ -715,26 +718,30 @@ output.
     \end{tabular}
 \end{table}
 
-The frozen design's BiLSTM recovers the Forward--Backward posteriors almost
-perfectly ($r = 0.9997$, MAE $0.0035$), confirming a direct network can
-learn the HMM's deterministic mapping.
-End-to-end training improves the BayesFlow posterior markedly:
-its median reaches MAE $0.016$ and $r = 0.987$, versus $0.057$ and $0.778$
-for the frozen design, because the flow's loss shapes the encoder to what
-the flow needs rather than to a separate point-prediction objective.
+The frozen BiLSTM nails it: it basically matches the Forward--Backward
+posteriors, with a correlation of $0.9997$ and a mean absolute error (MAE) of
+just $0.0035$. That tells us a neural network can essentially learn the
+HMM's deterministic mapping.
 
-The joint BiLSTM is a poor point predictor ($r = -0.535$), as
-expected: never trained on the supervised BCE objective, it functions
-purely as a feature extractor, so its per-position outputs should not be
-read as probabilities, and the BiLSTM baseline is meaningful only in the
-frozen design.
+Training BayesFlow end-to-end helps a lot: its median posterior drops the
+MAE to $0.016$ and boosts the correlation to $0.987$ --- much better than the
+frozen design's $0.057$ MAE and $0.778$ correlation. Why? Because end-to-end
+training teaches the flow exactly what it needs from the encoder, not just
+whatever comes from a point-prediction objective.
+
+The joint BiLSTM is not much good as a point predictor (correlation is
+negative: $-0.535$), but that is no surprise: it was never trained
+specifically for the binary cross-entropy loss --- it is just extracting
+features. So you really should not treat its outputs as probabilities. The
+only setting where the BiLSTM baseline means anything is in the frozen
+design.
 
 \subsection{Insulin 1A7F validation}
 
-We evaluate both designs on human insulin by comparing the predicted
-$P(\alpha)$ to the experimental HELIX annotation. Table~\ref{tab:insulin}
-summarises per-chain results and Figure~\ref{fig:insulin} shows the
-per-residue predictions.
+We looked at how both designs handle human insulin by comparing their
+predicted $P(\alpha)$ to the experimental HELIX annotation.
+Table~\ref{tab:insulin} lays out the results for each chain, and
+Figure~\ref{fig:insulin} breaks things down by residue.
 
 \begin{table}[ht]
     \centering
@@ -760,28 +767,29 @@ per-residue predictions.
     \label{fig:insulin}
 \end{figure}
 
-Chain B ($34.5\%$ true helix) is predicted well by both designs, with
-correlations of $0.85$ tracking the annotation closely; its helix
-fraction is close to the HMM stationary distribution
-($\pi \approx 33\%$), so the prior does not conflict with the evidence.
+Chain B, which has $34.5\%$ helix content, fares well with both models:
+their predictions line up with the real annotation (correlation around
+$0.85$), and the predicted helix fraction sits near the HMM's long-term
+average (around $33\%$). In other words, the prior lines up with the
+reality here, so both models do fine.
 
-Chain A ($61.9\%$ true helix) is poorly predicted by both designs
-($r \approx 0.4$): the stationary prior of about $33\%$ helix biases
-predictions toward \emph{other}, and the emission tables cannot override
-it over only 21 residues. Running
-Forward--Backward \emph{directly} on insulin yields a
-similarly low correlation on chain~A ($r \approx 0.40$), so the
-limitation is intrinsic to the
-two-state HMM rather than the neural approximator.
+Chain A is a different story. It has $61.9\%$ helix, but both models
+struggle (correlation only about $0.4$). Why? The stationary prior still
+expects about $33\%$ helix, pulling predictions away from what is true.
+With just $21$ residues, the emission tables cannot really fight that
+prior. Even if you run Forward--Backward directly on insulin, chain~A still
+gets a low correlation (about $0.40$). So the trouble comes from the
+two-state HMM itself, not from the neural approximator.
 
-The most informative comparison is across designs on insulin. Joint
-training recovers the Forward--Backward posterior almost perfectly on
-synthetic data ($r = 0.987$), yet the insulin correlations are essentially
-unchanged (chain~A $0.391$ vs.\ $0.428$; chain~B $0.854$ vs.\ $0.851$):
-a near-perfect posterior estimator cannot exceed what the simulator's
-assumptions allow. This is direct empirical evidence for
-the \emph{model ceiling} interpretation of chain~A --- no amount of
-flow training can close the gap between the two chains.
+The most telling comparison is when we look at both designs side by side on
+insulin. The jointly trained model nails the Forward--Backward posterior on
+synthetic data (correlation almost perfect at $0.987$), but for real
+insulin nothing changes --- the correlations stay pretty much the same
+(chain~A: $0.391$ vs.\ $0.428$; chain~B: $0.854$ vs.\ $0.851$). So even
+with a nearly perfect estimator, the model cannot go beyond the limitations
+set by the simulator. For chain~A, that is clear evidence of a hard cap ---
+a \emph{model ceiling} --- that extra training cannot fix. No matter what
+you do, there will always be a gap between the two chains.
 
 
 \section{Discussion \& Conclusion}
