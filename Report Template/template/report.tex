@@ -24,7 +24,7 @@
 \usepackage{units}
 \usepackage{url}
  %For aligned formulas
- \usepackage{IEEEtrantools}
+\usepackage{IEEEtrantools}
 \usepackage{listings} %Source code listings https://en.wikibooks.org/wiki/LaTeX/Source_Code_Listings
 \usepackage{xcolor}
 \usepackage{array}
@@ -77,9 +77,9 @@
 
         {\LARGE 
             Kiana Ebrahimi Farbod, 284599\\[10pt]
-            Samaneh Naghdbishi, [Matriculation number]\\[10pt]
+            Samaneh Naghdbishi, 273554\\[10pt]
             Armin Maddah Asl, 268884\\[10pt]
-            Geri Lila, [Matriculation number]\\[10pt]
+            Geri Lila, 274643\\[10pt]
         } % Your names  
         
         \vfill
@@ -148,17 +148,11 @@ compatible two-state validation target.
 
 \subsection{Canonical representation}
 
-Each amino acid is represented by an integer in $\{0,\ldots,19\}$ in the canonical
-order
+Every amino acid is encoded as an integer between 0 and 19 using the canonical order
 \begin{equation}
 (\mathrm{A,R,N,D,C,E,Q,G,H,I,L,K,M,F,P,S,T,W,Y,V}).
 \end{equation}
-For example, alanine is 0, glycine 7, and valine 19. The mapping,
-inverse mapping, state labels, and all probability arrays are defined once in
-\texttt{encoding.py}; the hidden-state convention is $0=\alpha$-helix and
-$1=\text{other}$, arrays are checked at import time to sum to
-one, and the same representation is used for simulation and insulin parsing
-(alphabet size 20).
+Thus, alanine would be coded 0, glycine 7, and valine 19. The encoding and decoding functions, the labels, and the probability arrays are all defined just once in \texttt{encoding.py}. The convention for the hidden states is $0=\alpha$-helix and $1=\text{other}$. The probability arrays will be verified when imported to sum to one.
 
 \subsection{Simulated training data}
 
@@ -192,13 +186,7 @@ where state 0 denotes $\alpha$-helix; each training item is the integer sequence
 its per-position $\alpha$ posterior (a probability in $[0,1]$, not a hard
 label), and the sampled state path.
 
-Because lengths vary, sequences are concatenated into a one-dimensional array
-with a vector of lengths, avoiding unnecessary padding.
-
-A \texttt{.npz} file stores sequences, posteriors, states, and lengths; cumulative
-sums of lengths reconstruct each example exactly, without object arrays or
-pickling, and let the model pad and mask itself. Table~\ref{tab:data-interfaces}
-lists the main interfaces.
+Since different sequences have different lengths, they are put together in a single row and the vector of lengths is created along with it, eliminating any padding. The \texttt{.npz}file contains sequences, posteriors, states, and lengths, while the sum of lengths recreates the example without the need for object arrays or pickling. Table ~\ref{tab:data-interfaces} lists the main interfaces.
 
 \begin{table}[ht]
     \centering
@@ -236,7 +224,7 @@ Tyr$\rightarrow$Glu and B24 Phe$\rightarrow$Gly and lacks residue B30 (des-B30).
 
 The mmCIF file was parsed with Biopython and the first NMR model's standard
 residues encoded to the simulator indices. Annotations come from the deposited
-\texttt{struct\_\allowbreak conf} records: only class-1 (right-handed
+\texttt{\_struct\_\allowbreak conf} records: only class-1 (right-handed
 $\alpha$-helix)
 residues are positive, everything else ``other'' (Table~\ref{tab:insulin-data}).
 
@@ -257,7 +245,7 @@ residues are positive, everything else ``other'' (Table~\ref{tab:insulin-data}).
 These are hard labels (1 = annotated $\alpha$-helix, 0 = other), not
 Forward--Backward posteriors, and are never used for training; for file-format
 compatibility they occupy the \texttt{posteriors} field while the
-state array uses the project convention. The preprocessing verifies
+state array uses $0=\alpha$ and $1=\text{other}$. The preprocessing verifies
 sequences, helix labels, and dataset round-trips.
 
 \section{Statistical model}
@@ -297,13 +285,10 @@ P(0\mid1)&P(1\mid1)
 \label{eq:transition}
 \end{equation}
 Thus $\alpha$-helix runs last on average $10$ residues, other runs $20$,
-and the stationary distribution
-$\boldsymbol{\mu}=(1/3,2/3)$ means short sequences are initially biased toward the
-other state. Because the simulator relies on fixed empirical transition and emission
-matrices, we do not define a prior over the model parameters. However, the HMM
-possesses an explicit, proper stationary prior over the hidden states
-($\approx 33\%$ $\alpha$-helix), which encodes our prior expectations before
-seeing the sequence data.
+and the stationary distribution $\boldsymbol{\mu}=(1/3,2/3)$ describes the
+long-run state proportions. It is not the initial-state prior, which is
+deterministic (Equation~\ref{eq:start}). Because the transition and emission
+matrices are fixed, no prior is placed over the model parameters.
 
 The state-conditional emission probabilities are the fixed empirical values in
 Table~\ref{tab:emissions} (each row a categorical distribution over the canonical
@@ -369,11 +354,7 @@ The smoothed posterior marginal is then
 \end{equation}
 The training target is the $\alpha$ column, $y_t=\gamma_t(0)$.
 
-The implementation uses \texttt{hmmlearn.CategoricalHMM} \parencite{hmmlearn}
-with the common constants in \texttt{startprob\_},
-\texttt{transmat\_}, and \texttt{emissionprob\_} (alphabet size 20) without
-fitting, which would alter the parameters; \texttt{predict\_proba} performs
-inference on batched sequences, keeping column 0 as the target.
+The code uses \texttt{hmmlearn.CategoricalHMM} \parencite{hmmlearn} with standard values for the constants \texttt{startprob\_}, \texttt{transmat\_}, and \texttt{emissionprob\_} (alphabet size 20). Fitting is not required because that would change the values of the parameters. Inference is done with \texttt{predict\_proba} on batches of sequences, with column 0 being the target.
 
 \subsection{Verification}
 
@@ -388,15 +369,13 @@ sequences. On 2000 length-500 sequences (seed 12345) the
 maximum empirical deviation from the specified transition and emission
 probabilities was 0.0004 and 0.0007, below the Monte Carlo threshold of 0.01;
 verification on 200 sequences confirmed posteriors in $[0,1]$, probabilities
-summing to one, and zero $\alpha$ posterior at position 0.
+summing to one, and zero $\alpha$ posterior at position 0. Fixed seeds reproduced
+lengths, observations, targets, and latent paths exactly; save/load round-trips
+were lossless, and all 45 automated tests for Sections~2--3 passed.
 
 \subsection{Interpretation and limitations}
 
-Given fixed HMM parameters, (\ref{eq:gamma}) is a deterministic function of the
-sequence: the network amortizes the exact Forward--Backward computation rather
-than learning a parameter posterior (this motivates the calibration checks
-later). The HMM is intentionally simple: $\beta$-sheets and coils share one
-state, emissions are not position-dependent, and the deterministic start
+Equation (\ref{eq:gamma}) is now a deterministic function of the sequence with the HMM parameters remaining constant. In this way, the network amortizes the actual Forward-Backward calculation and not the parameter posterior (which is one reason why the following calibration tests are performed). The Hidden Markov Model is intentionally simple: There is only one state for the $\beta$-sheet and coil, there is independence from position in the emissions, and the deterministic start
 forces an exact-zero $\alpha$ posterior at position 0.
 
 \section{Approximator}
@@ -476,8 +455,7 @@ validation sequences (length $10$--$60$, padded to $60$) is generated once
 and reused across every epoch. The pipeline runs in two stages: the
 summary network (Section~\ref{sec:approx}) is pretrained on the
 Forward--Backward posteriors, then frozen as a feature extractor to
-condition the coupling flow, keeping each optimisation target well defined;
-all losses and metrics use real positions only.
+condition the coupling flow; all losses and metrics use real positions only.
 
 \subsection{Stage 1: summary-network pretraining}
 
@@ -487,7 +465,7 @@ $10^{-4}$, batch size $64$, gradient clipping at norm $1.0$,
 \texttt{ReduceLROnPlateau}, up to $60$ epochs, early stopping with patience
 $8$). Its output forms a $124$-dimensional
 condition: a $64$-dimensional pooled summary concatenated with the $60$
-per-position logits. Both halves matter: conditioning on the pooled summary
+per-position logits. Conditioning on the pooled summary
 alone discarded positional information and underperformed a sequence-blind
 baseline; concatenating the per-position logits fixed that.
 
@@ -495,13 +473,12 @@ baseline; concatenating the per-position logits fixed that.
 
 With the summary network frozen, the flow is trained with AdamW (learning
 rate $5\times10^{-4}$, weight decay $10^{-3}$), batch size $64$, for $100$
-epochs. One subtlety: the flow's objective is a negative log-density, hence
-unbounded below, and roughly $44\%$ of every padded
-target is exactly zero (padding plus the deterministic start at
-position~$0$). A continuous flow can place arbitrarily high density on a
-single point, so selecting by this loss rewards whichever config overfits
-the padding hardest; we therefore rank
-configurations by masked mean absolute error (MAE) on real positions. A
+epochs. The flow's objective
+is a negative log-density and unbounded below, and roughly $44\%$ of every
+padded target is exactly zero (padding plus the deterministic start at
+position~$0$), so a continuous flow can drive the loss down just by
+overfitting the padding. Configurations are instead ranked by masked mean
+absolute error (MAE) on real positions. A
 search over optimiser, learning rate, depth, and weight decay (six
 configurations) selected a coupling-flow depth of $10$
 (Figure~\ref{fig:training}).
@@ -509,12 +486,11 @@ configurations) selected a coupling-flow depth of $10$
 \subsection{Convergence}
 
 The Stage-1 loss plateaus around $0.46$ (Figure~\ref{fig:training}) rather
-than going to zero, which is not stalling: for soft probability targets
+than going to zero, which is expected: for soft probability targets
 cross-entropy is bounded below by their mean entropy. That
 floor is $0.4621$ on the validation set and the network reaches $0.4623$ --- a
-gap of only $0.0003$, so the flat curve sits at its theoretical minimum,
-with no sign of overfitting. Calibration and coverage are assessed on a
-held-out set in Section~\ref{sec:diag}.
+gap of only $0.0003$, essentially the theoretical minimum, with no sign of
+overfitting.
 
 \begin{figure}[ht]
 \centering
@@ -531,12 +507,14 @@ depth-$10$ configuration was selected.}
 
 The joint model reuses the same architectures, but
 \texttt{fit\_\allowbreak offline} manages a single optimizer for the whole
-model (one AdamW-with-cosine-warmup schedule) rather than the staged
-design's two independently-tuned ones. The search was trimmed to four
-configurations, since joint training pays the BiLSTM's forward/backward
-cost on every step of every trial rather than once. It selected learning
-rate $10^{-3}$,
-weight decay $10^{-3}$, depth~$6$. On this (CPU-only) machine the final
+model (one AdamW-with-cosine-warmup schedule) rather than the staged design's two
+independently-tuned ones. Its hyperparameter search was also trimmed, to
+four configurations, since joint training pays the
+BiLSTM's forward/backward cost on every step of every trial instead of
+once. The search picked learning rate $10^{-3}$, weight decay $10^{-3}$,
+depth~$6$; depth $10$ scored worse here, so each design ends up compared
+at its own best depth rather than a matched one. On this
+(CPU-only) machine the final
 $100$-epoch retrain took $33.5$ minutes, versus $\sim17$ minutes for the
 whole $4$-configuration search.
 
